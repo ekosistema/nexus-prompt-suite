@@ -1,0 +1,47 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+out/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Config / Preferences
+.nexus_preferences.json
+
+# Logs
+*.log
+
+# Tauri / Rust
+target/
+gen/
+**/*.rs.bk
+Cargo.lock
