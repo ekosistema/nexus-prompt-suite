@@ -204,7 +204,7 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             id: "opencode_go".into(),
             name: "OpenCode Go".into(),
             icon: "🏃".into(),
-            default_url: "https://opencode.ai/go".into(),
+            default_url: "https://opencode.ai/zen/go".into(),
             default_models: vec![
                 "grok-4.5".into(),
                 "kimi-k3".into(),
