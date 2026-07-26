@@ -48,18 +48,51 @@ mod tests {
 
             Ok(self.mock_response.clone())
         }
+
+        async fn call_ai_stream(
+            &self,
+            provider: &str,
+            endpoint: &str,
+            model: &str,
+            messages: Vec<Message>,
+            temperature: f32,
+            num_ctx: u32,
+            api_key: Option<String>,
+        ) -> Result<String, String> {
+            self.call_ai(
+                provider,
+                endpoint,
+                model,
+                messages,
+                temperature,
+                num_ctx,
+                api_key,
+            )
+            .await
+        }
     }
 
     // ── Phase 1: Happy Path Validation ──────────────────────────────────────
     #[tokio::test]
     async fn test_happy_path_valid_call() {
         let engine = MockAiEngine::new();
-        let msgs = vec![Message { role: "user".into(), content: "Hello".into() }];
-        
-        let res = engine.call_ai(
-            "openai", "https://mock.api", "gpt-4", msgs, 0.7, 2048, Some("sk-test123".into())
-        ).await;
-        
+        let msgs = vec![Message {
+            role: "user".into(),
+            content: "Hello".into(),
+        }];
+
+        let res = engine
+            .call_ai(
+                "openai",
+                "https://mock.api",
+                "gpt-4",
+                msgs,
+                0.7,
+                2048,
+                Some("sk-test123".into()),
+            )
+            .await;
+
         assert!(res.is_ok(), "Happy path failed: {:?}", res);
         assert_eq!(res.unwrap(), "Mocked AI Response");
     }
@@ -68,12 +101,23 @@ mod tests {
     #[tokio::test]
     async fn test_hostile_missing_api_key() {
         let engine = MockAiEngine::new();
-        let msgs = vec![Message { role: "user".into(), content: "Hack".into() }];
-        
-        let res = engine.call_ai(
-            "openrouter", "https://mock.api", "claude-3", msgs, 1.0, 2048, None
-        ).await;
-        
+        let msgs = vec![Message {
+            role: "user".into(),
+            content: "Hack".into(),
+        }];
+
+        let res = engine
+            .call_ai(
+                "openrouter",
+                "https://mock.api",
+                "claude-3",
+                msgs,
+                1.0,
+                2048,
+                None,
+            )
+            .await;
+
         assert!(res.is_err(), "Expected error when API key is missing");
         assert!(res.unwrap_err().contains("API key is required"));
     }
@@ -82,11 +126,19 @@ mod tests {
     async fn test_hostile_empty_messages() {
         let engine = MockAiEngine::new();
         let empty_msgs = vec![];
-        
-        let res = engine.call_ai(
-            "ollama", "http://localhost:11434", "llama3", empty_msgs, 1.0, 2048, None
-        ).await;
-        
+
+        let res = engine
+            .call_ai(
+                "ollama",
+                "http://localhost:11434",
+                "llama3",
+                empty_msgs,
+                1.0,
+                2048,
+                None,
+            )
+            .await;
+
         assert!(res.is_err(), "Expected error on empty arrays");
         assert_eq!(res.unwrap_err(), "Messages array cannot be empty");
     }
@@ -95,33 +147,115 @@ mod tests {
     async fn test_hostile_network_timeout() {
         let mut engine = MockAiEngine::new();
         engine.should_fail = true; // Simulating connection failure
-        let msgs = vec![Message { role: "user".into(), content: "Hey".into() }];
+        let msgs = vec![Message {
+            role: "user".into(),
+            content: "Hey".into(),
+        }];
 
-        let res = engine.call_ai(
-            "ollama", "http://10.255.255.1", "llama3", msgs, 1.0, 2048, None
-        ).await;
+        let res = engine
+            .call_ai(
+                "ollama",
+                "http://10.255.255.1",
+                "llama3",
+                msgs,
+                1.0,
+                2048,
+                None,
+            )
+            .await;
 
         assert!(res.is_err());
-        assert!(res.unwrap_err().contains("Mocked connection error for ollama"));
+        assert!(res
+            .unwrap_err()
+            .contains("Mocked connection error for ollama"));
     }
 
-    // ── Phase 3: Performance & Memory Profile ───────────────────────────────
+    // ── Phase 3: Endpoint Security Validation ─────────────────────────────
+    #[test]
+    fn test_is_localhost_accepted() {
+        assert!(crate::is_localhost(""));
+        assert!(crate::is_localhost("http://localhost:11434"));
+        assert!(crate::is_localhost("https://127.0.0.1:8080"));
+        // Note: IPv6 literal [::1] parsing depends on url crate version; tested manually
+        assert!(crate::is_localhost("http://myserver.local"));
+    }
+
+    #[test]
+    fn test_is_localhost_rejected() {
+        assert!(!crate::is_localhost("https://api.openai.com"));
+        assert!(!crate::is_localhost("http://evil.com"));
+    }
+
+    #[test]
+    fn test_is_allowed_endpoint_exact_match() {
+        assert!(crate::is_allowed_endpoint("https://api.openai.com/v1"));
+        assert!(crate::is_allowed_endpoint("https://openrouter.ai/api"));
+        assert!(crate::is_allowed_endpoint("https://api.groq.com/openai/v1"));
+    }
+
+    #[test]
+    fn test_is_allowed_endpoint_subdomain() {
+        assert!(crate::is_allowed_endpoint("https://sub.api.openai.com/v1"));
+        assert!(crate::is_allowed_endpoint("https://beta.openrouter.ai/api"));
+    }
+
+    #[test]
+    fn test_is_allowed_endpoint_bypass_blocked() {
+        assert!(!crate::is_allowed_endpoint(
+            "https://api.openai.com.evil.com/v1"
+        ));
+        assert!(!crate::is_allowed_endpoint("https://evilopenai.com/v1"));
+        assert!(!crate::is_allowed_endpoint(
+            "https://fake-api.openai.com.phishing.site/v1"
+        ));
+        assert!(!crate::is_allowed_endpoint(
+            "https://openrouter.ai.evil.com/api"
+        ));
+    }
+
+    #[test]
+    fn test_is_allowed_endpoint_localhost() {
+        assert!(crate::is_allowed_endpoint("http://localhost:11434"));
+        assert!(crate::is_allowed_endpoint("http://127.0.0.1:8080"));
+    }
+
+    #[test]
+    fn test_is_allowed_endpoint_empty() {
+        assert!(crate::is_allowed_endpoint(""));
+    }
+
+    // ── Phase 4: Performance & Memory Profile ───────────────────────────────
     #[tokio::test]
     async fn test_performance_massive_payload() {
         let engine = MockAiEngine::new();
-        
+
         // Simular un request monstruoso de 100,000 caracteres (Stress Test)
         let huge_content = "A".repeat(100_000);
-        let msgs = vec![Message { role: "user".into(), content: huge_content }];
-        
+        let msgs = vec![Message {
+            role: "user".into(),
+            content: huge_content,
+        }];
+
         let start = std::time::Instant::now();
-        let res = engine.call_ai(
-            "openai", "https://mock", "gpt-4", msgs, 0.5, 4096, Some("sk-123".into())
-        ).await;
+        let res = engine
+            .call_ai(
+                "openai",
+                "https://mock",
+                "gpt-4",
+                msgs,
+                0.5,
+                4096,
+                Some("sk-123".into()),
+            )
+            .await;
         let elapsed = start.elapsed();
 
         assert!(res.is_ok());
         // El mock debería responder en < 50ms incluso con payloads gigantes
-        assert!(elapsed.as_millis() < 50, "Performance threshold exceeded! Took {}ms", elapsed.as_millis());
+        assert!(
+            elapsed.as_millis() < 50,
+            "Performance threshold exceeded! Took {}ms",
+            elapsed.as_millis()
+        );
     }
 }

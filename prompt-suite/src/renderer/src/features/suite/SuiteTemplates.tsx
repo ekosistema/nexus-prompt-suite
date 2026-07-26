@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { promptTemplates, PromptTemplate } from './data';
 import { t } from '../../lib/i18n';
+import { secureGetItem, secureSetItem } from '../../lib/secureStorage';
 import { Search, BookOpen, Zap, Shield, FileText, Settings, Code, Plus, Trash2, Save, Edit3, X, Info } from 'lucide-react';
 
 interface CustomTemplate {
@@ -275,16 +276,15 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
     const [showIconPicker, setShowIconPicker] = useState(false);
 
     useEffect(() => {
-        const saved = localStorage.getItem('custom_templates');
-        if (saved) {
-            try {
-                setCustomTemplates(JSON.parse(saved));
-            } catch { /* ignore */ }
-        }
+        secureGetItem<CustomTemplate[]>('custom_templates').then(data => {
+            if (data) setCustomTemplates(data);
+        });
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('custom_templates', JSON.stringify(customTemplates));
+        if (customTemplates.length > 0) {
+            secureSetItem('custom_templates', customTemplates);
+        }
     }, [customTemplates]);
 
     const allTemplates = useMemo((): UnifiedTemplate[] => {

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { safeLog } from '../lib/utils';
 
 export interface Message {
     role: string;
@@ -19,6 +20,7 @@ export interface ProviderInfo {
     is_openai_compat: boolean;
     description: string;
     cost_tier: string;
+    docs_url: string;
 }
 
 export interface AIRequest {
@@ -28,7 +30,6 @@ export interface AIRequest {
     messages: Message[];
     temperature: number;
     numCtx: number;
-    apiKey?: string;
     stream?: boolean;
 }
 
@@ -43,12 +44,11 @@ export const aiService = {
                 messages: request.messages,
                 temperature: request.temperature,
                 numCtx: request.numCtx,
-                apiKey: request.apiKey
             }) as string;
             
             return response;
         } catch (error) {
-            console.error('AI Service Error:', error);
+            safeLog('error', 'AI Service Error:', error);
             throw new Error(typeof error === 'string' ? error : 'Failed to generate AI response');
         }
     },
@@ -58,7 +58,7 @@ export const aiService = {
             const models = await invoke('list_ollama_models', { endpoint }) as string[];
             return models;
         } catch (error) {
-            console.error('Ollama model list error:', error);
+            safeLog('error', 'Ollama model list error:', error);
             throw new Error(typeof error === 'string' ? error : 'Failed to connect to Ollama');
         }
     },
@@ -68,7 +68,7 @@ export const aiService = {
             const models = await invoke('list_provider_models', { provider, endpoint, apiKey }) as string[];
             return models;
         } catch (error) {
-            console.error('Provider model list error:', error);
+            safeLog('error', 'Provider model list error:', error);
             throw new Error(typeof error === 'string' ? error : `Failed to list models for ${provider}`);
         }
     },
@@ -78,7 +78,7 @@ export const aiService = {
             const providers = await invoke('get_available_providers') as ProviderInfo[];
             return providers;
         } catch (error) {
-            console.error('Get providers error:', error);
+            safeLog('error', 'Get providers error:', error);
             return [];
         }
     },
@@ -87,8 +87,8 @@ export const aiService = {
         try {
             return await invoke('save_provider_api_key', { provider, key }) as boolean;
         } catch (error) {
-            console.error('Save provider key error:', error);
-            throw new Error(typeof error === 'string' ? error : 'Failed to save API key');
+            safeLog('error', 'Save provider key error');
+            throw new Error('Failed to save API key');
         }
     },
 
@@ -96,7 +96,7 @@ export const aiService = {
         try {
             return await invoke('get_provider_api_key', { provider }) as string;
         } catch (error) {
-            console.error('Get provider key error:', error);
+            safeLog('error', 'Get provider key error');
             return '';
         }
     }

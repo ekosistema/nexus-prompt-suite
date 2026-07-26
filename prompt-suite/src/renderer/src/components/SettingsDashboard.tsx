@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { t } from '../lib/i18n';
-import { cn } from '../lib/utils';
+import { cn, safeLog } from '../lib/utils';
 import { aiService } from '../services/ai';
 import { RefreshCw, Zap, Eye, EyeOff, Globe, Cpu, Thermometer, Database, Shield, Key, Server } from 'lucide-react';
 
@@ -10,28 +10,58 @@ export function SettingsDashboard(): JSX.Element {
     const [modelsError, setModelsError] = useState<string | null>(null);
     const [showApiKey, setShowApiKey] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [localApiKey, setLocalApiKey] = useState('');
+    const [keySaved, setKeySaved] = useState(false);
 
     const currentProvider = providers.find(p => p.id === settings.aiProvider);
 
+    useEffect(() => {
+        setKeySaved(settings.hasApiKey);
+        setLocalApiKey('');
+        setShowApiKey(false);
+    }, [settings.aiProvider, settings.hasApiKey]);
+
     const updateSetting = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
-        setSettings({ ...settings, [key]: value });
+        setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleSaveApiKey = async () => {
+        if (!localApiKey.trim()) return;
+        try {
+            await aiService.saveProviderApiKey(settings.aiProvider, localApiKey.trim());
+            setSettings(prev => ({ ...prev, hasApiKey: true }));
+            setLocalApiKey('');
+            setKeySaved(true);
+            setTimeout(() => setKeySaved(false), 2000);
+        } catch (err) {
+            safeLog('error', 'Failed to save API key:', err);
+        }
+    };
+
+    const handleClearApiKey = async () => {
+        try {
+            await aiService.saveProviderApiKey(settings.aiProvider, '');
+            setSettings(prev => ({ ...prev, hasApiKey: false }));
+            setLocalApiKey('');
+            setKeySaved(false);
+        } catch (err) {
+            safeLog('error', 'Failed to clear API key:', err);
+        }
     };
 
     const handleProviderChange = async (providerId: string) => {
         const provider = providers.find(p => p.id === providerId);
         if (!provider) return;
 
-        // Load stored API key from keyring for the new provider
         const storedKey = await aiService.getProviderApiKey(providerId);
 
-        // Single atomic update to avoid race conditions
-        setSettings({
-            ...settings,
+        setSettings(prev => ({
+            ...prev,
             aiProvider: providerId,
             endpoint: provider.default_url,
             model: provider.default_models[0] || '',
-            apiKey: storedKey || '',
-        });
+            hasApiKey: !!storedKey,
+        }));
     };
 
     const fetchModels = useCallback(async () => {
@@ -160,76 +190,61 @@ export function SettingsDashboard(): JSX.Element {
                                             <label htmlFor="provider-key" className={labelClass}>
                                                 <Key size={14} className="inline mr-1.5 opacity-60" />
                                                 {t('settings.api_key', lang)}{currentProvider.supports_api_key && !currentProvider.needs_api_key && ' (opcional)'}
+                                                {settings.hasApiKey && (
+                                                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/30">
+                                                        Guardada
+                                                    </span>
+                                                )}
                                             </label>
-                                            <div className="relative">
-                                                <input
-                                                    id="provider-key"
-                                                    type={showApiKey ? 'text' : 'password'}
-                                                    className={inputClass + ' font-mono pr-10'}
-                                                    value={settings.apiKey}
-                                                    onChange={(e) => updateSetting('apiKey', e.target.value)}
-                                                    placeholder="sk-..."
-                                                    autoComplete="off"
-                                                />
+                                            {!settings.hasApiKey ? (
+                                                <div className="relative">
+                                                    <input
+                                                        id="provider-key"
+                                                        type={showApiKey ? 'text' : 'password'}
+                                                        className={inputClass + ' font-mono pr-10'}
+                                                        value={localApiKey}
+                                                        onChange={(e) => setLocalApiKey(e.target.value)}
+                                                        placeholder="sk-..."
+                                                        autoComplete="off"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowApiKey(!showApiKey)}
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 p-2.5 rounded-md bg-green-500/5 border border-green-500/20">
+                                                    <span className="text-xs text-green-400 flex-1">
+                                                        Clave almacenada de forma segura en el keychain del sistema
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearApiKey}
+                                                        className="text-xs px-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {!settings.hasApiKey && localApiKey.trim() && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => setShowApiKey(!showApiKey)}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                                                    onClick={handleSaveApiKey}
+                                                    className="w-full mt-1.5 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium border border-primary/30 transition-all"
                                                 >
-                                                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                    <Key size={12} />
+                                                    {keySaved ? 'Guardada' : 'Guardar en keychain'}
                                                 </button>
-                                            </div>
-                                            {settings.aiProvider === 'openai' && (
+                                            )}
+                                            {currentProvider.docs_url && (
                                                 <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
                                                     {t('settings.get_key', lang)}{' '}
-                                                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                                                        platform.openai.com/api-keys
+                                                    <a href={currentProvider.docs_url} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                                                        {currentProvider.docs_url.replace(/^https?:\/\//, '')}
                                                     </a>
-                                                </p>
-                                            )}
-                                            {settings.aiProvider === 'openrouter' && (
-                                                <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    {t('settings.get_key', lang)}{' '}
-                                                    <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                                                        openrouter.ai/keys
-                                                    </a>
-                                                </p>
-                                            )}
-                                            {settings.aiProvider === 'groq' && (
-                                                <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    {t('settings.get_key', lang)}{' '}
-                                                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                                                        console.groq.com/keys
-                                                    </a>
-                                                </p>
-                                            )}
-                                            {settings.aiProvider === 'anthropic' && (
-                                                <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    {t('settings.get_key', lang)}{' '}
-                                                    <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                                                        console.anthropic.com/settings/keys
-                                                    </a>
-                                                </p>
-                                            )}
-                                            {settings.aiProvider === 'gemini' && (
-                                                <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    {t('settings.get_key', lang)}{' '}
-                                                    <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                                                        aistudio.google.com/apikey
-                                                    </a>
-                                                </p>
-                                            )}
-                                            {settings.aiProvider === 'together' && (
-                                                <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    {t('settings.get_key', lang)}{' '}
-                                                    <a href="https://api.together.xyz/settings/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                                                        api.together.xyz/settings
-                                                    </a>
-                                                </p>
-                                            )}
-                                            {settings.aiProvider === 'opencode' && (
-                                                <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    🔓 Opcional — OpenCode funciona sin clave en local, pero puedes configurar una para acceso remoto.
                                                 </p>
                                             )}
                                             {currentProvider.id === 'ollama' && (
@@ -423,16 +438,16 @@ export function SettingsDashboard(): JSX.Element {
                                     <div>
                                         <div className="text-sm font-medium">API Key</div>
                                         <div className="text-xs text-muted-foreground font-mono">
-                                            {settings.apiKey ? `${settings.apiKey.slice(0, 4)}••••••` : 'Not set'}
+                                            {settings.hasApiKey ? 'Stored in keychain' : 'Not set'}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className={cn(
                                             "w-2 h-2 rounded-full",
-                                            settings.apiKey ? "bg-green-500" : (currentProvider?.needs_api_key ? "bg-red-500" : "bg-yellow-500")
+                                            settings.hasApiKey ? "bg-green-500" : (currentProvider?.needs_api_key ? "bg-red-500" : "bg-yellow-500")
                                         )} />
                                         <span className="text-xs text-muted-foreground">
-                                            {settings.apiKey ? 'Stored in keychain' : (currentProvider?.needs_api_key ? 'Required' : 'Optional')}
+                                            {settings.hasApiKey ? 'Stored in keychain' : (currentProvider?.needs_api_key ? 'Required' : 'Optional')}
                                         </span>
                                     </div>
                                 </div>

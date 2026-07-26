@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { aiService, AIRequest, Message } from '../services/ai';
 import { useApp } from '../contexts/AppContext';
+import { safeLog } from '../lib/utils';
 
 export function useAIInference() {
     const { settings } = useApp();
@@ -52,7 +53,6 @@ export function useAIInference() {
                 messages: newMessages,
                 temperature: settings.temperature,
                 numCtx: settings.numCtx,
-                apiKey: settings.apiKey,
                 stream: settings.streaming,
             };
 
@@ -91,11 +91,10 @@ export function useAIInference() {
                 messages: [{ role: 'user', content: titlePrompt }],
                 temperature: 0.3,
                 numCtx: settings.numCtx,
-                apiKey: settings.apiKey,
                 stream: false,
             });
         } catch (err) {
-            console.error('Title generation failed', err);
+            safeLog('error', 'Title generation failed');
             return 'New Chat';
         }
     };

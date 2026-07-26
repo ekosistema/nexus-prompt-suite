@@ -437,6 +437,11 @@ export const translations = {
     }
 };
 
+type TranslationDict = typeof translations['es'];
+type TranslationKey = keyof TranslationDict;
+
 export function t(key: string, lang: Lang): string {
-    return (translations[lang] as any)[key] || key;
+    return (translations[lang] as Record<string, string>)[key]
+        ?? (translations['es'] as Record<string, string>)[key]
+        ?? key;
 }

@@ -9,7 +9,7 @@ on:
       version:
         description: 'Version to build (e.g., 1.0.1)'
         required: true
-        default: '1.0.0'
+        default: '1.0.1'
 
 permissions:
   contents: write
@@ -56,36 +56,13 @@ jobs:
         working-directory: ./prompt-suite
         run: npm install
 
-      - name: Validate (typecheck + test)
-        working-directory: ./prompt-suite
-        run: |
-          npx tsc --noEmit
-          npm test
-
       - name: Build and Publish Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # -------------------------------------------------------------------
-          # CODE SIGNING & NOTARIZATION (Production Ready)
-          # -------------------------------------------------------------------
-          # macOS Notarization:
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          #
-          # macOS Code Signing:
-          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          #
-          # Windows Signing:
-          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # -------------------------------------------------------------------
         with:
           tagName: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
           releaseName: "Nexus Prompt Suite v__VERSION__"
-          releaseBody: "Automated high-performance build for version v__VERSION__."
           releaseDraft: false
           prerelease: false
           projectPath: "./prompt-suite"

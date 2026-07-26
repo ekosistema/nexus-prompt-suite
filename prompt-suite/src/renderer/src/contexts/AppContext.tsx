@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Lang } from '../lib/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { aiService, ProviderInfo } from '../services/ai';
+import { safeLog } from '../lib/utils';
 
 export interface Settings {
     lang: Lang;
@@ -10,9 +11,8 @@ export interface Settings {
     model: string;
     temperature: number;
     numCtx: number;
-    apiKey: string;
+    hasApiKey: boolean;
     streaming: boolean;
-    // Legacy fields for backward compatibility
     ollamaUrl?: string;
     ollamaModel?: string;
     openaiModel?: string;
@@ -23,7 +23,7 @@ interface AppContextType {
     lang: Lang;
     setLang: (lang: Lang) => void;
     settings: Settings;
-    setSettings: (settings: Settings) => Promise<void>;
+    setSettings: (updater: Settings | ((prev: Settings) => Settings)) => Promise<void>;
     isLoadingSettings: boolean;
     providers: ProviderInfo[];
     isLoadingProviders: boolean;
@@ -77,7 +77,7 @@ export function AppProvider({ children }: AppProviderProps) {
         model: 'llama3',
         temperature: 0.7,
         numCtx: 4096,
-        apiKey: '',
+        hasApiKey: false,
         streaming: true,
     });
     const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -93,7 +93,7 @@ export function AppProvider({ children }: AppProviderProps) {
                 const loadedProviders = await aiService.getAvailableProviders();
                 setProviders(loadedProviders);
             } catch (err) {
-                console.error('Failed to load providers:', err);
+                safeLog('error', 'Failed to load providers');
             } finally {
                 setIsLoadingProviders(false);
             }
@@ -121,16 +121,15 @@ export function AppProvider({ children }: AppProviderProps) {
                     model: migration.model || 'llama3',
                     temperature: (loadedSettings.temperature as number) ?? 0.7,
                     numCtx: (loadedSettings.numCtx as number) || 4096,
-                    apiKey: secureApiKey || '',
+                    hasApiKey: !!secureApiKey,
                     streaming: (loadedSettings.streaming as boolean) ?? true,
-                    // Keep legacy fields for backward compatibility
                     ollamaUrl: loadedSettings.ollamaUrl as string | undefined,
                     ollamaModel: loadedSettings.ollamaModel as string | undefined,
                     openaiModel: loadedSettings.openaiModel as string | undefined,
                     openrouterModel: loadedSettings.openrouterModel as string | undefined,
                 });
             } catch (err) {
-                console.error('Failed to load settings:', err);
+                safeLog('error', 'Failed to load settings');
             } finally {
                 setIsLoadingSettings(false);
             }
@@ -141,7 +140,7 @@ export function AppProvider({ children }: AppProviderProps) {
     // Refresh models when provider, endpoint, or apiKey changes
     useEffect(() => {
         refreshModels();
-    }, [settings.aiProvider, settings.endpoint, settings.apiKey]);
+    }, [settings.aiProvider, settings.endpoint, settings.hasApiKey]);
 
     const refreshModels = async () => {
         const provider = providers.find(p => p.id === settings.aiProvider);
@@ -158,7 +157,7 @@ export function AppProvider({ children }: AppProviderProps) {
             const models = await aiService.listProviderModels(
                 settings.aiProvider,
                 settings.endpoint,
-                settings.apiKey || undefined
+                undefined
             );
             setAvailableModels(models.length > 0 ? models : provider.default_models);
             
@@ -167,7 +166,7 @@ export function AppProvider({ children }: AppProviderProps) {
                 setSettingsState(prev => ({ ...prev, model: models[0] }));
             }
         } catch (err) {
-            console.error('Failed to load models:', err);
+            safeLog('error', 'Failed to load models');
             setAvailableModels(provider.default_models);
         } finally {
             setIsLoadingModels(false);
@@ -175,23 +174,19 @@ export function AppProvider({ children }: AppProviderProps) {
     };
 
     const setLang = async (newLang: Lang) => {
-        const newSettings = { ...settings, lang: newLang };
-        await setSettings(newSettings);
+        setSettings(prev => ({ ...prev, lang: newLang }));
     };
 
-    const setSettings = async (newSettings: Settings) => {
+    const setSettings = async (updater: Settings | ((prev: Settings) => Settings)) => {
+        const newSettings = typeof updater === 'function'
+            ? (updater as (prev: Settings) => Settings)(settings)
+            : updater;
+
         setSettingsState(newSettings);
         try {
-            // Save settings to file (without API key)
-            const { apiKey, ...settingsWithoutKey } = newSettings;
-            await invoke('save_settings', { settings: settingsWithoutKey });
-            
-            // Save API key to provider-specific keyring
-            if (newSettings.apiKey) {
-                await aiService.saveProviderApiKey(newSettings.aiProvider, newSettings.apiKey);
-            }
+            await invoke('save_settings', { settings: newSettings });
         } catch (err) {
-            console.error('Failed to save settings:', err);
+            safeLog('error', 'Failed to save settings');
         }
     };
 

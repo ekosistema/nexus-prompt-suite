@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: tauri: api: https://*; img-src 'self' data: blob: tauri: https://*; connect-src 'self' tauri: https://* wss://*; font-src 'self' data: https://*">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' tauri: api:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: tauri: https://*.openai.com https://*.anthropic.com https://*.googleapis.com https://*.groq.com https://*.together.xyz https://openrouter.ai https://*.opencode.ai https://fonts.gstatic.com; connect-src 'self' tauri: https://*.openai.com https://*.anthropic.com https://*.googleapis.com https://*.groq.com https://*.together.xyz https://openrouter.ai https://*.opencode.ai http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; font-src 'self' data: https://fonts.gstatic.com; frame-src 'none'; object-src 'none';">
     <link rel="icon" type="image/png" href="/src/renderer/favicon.png" />
     <title>Nexus Prompt Suite</title>
 </head>

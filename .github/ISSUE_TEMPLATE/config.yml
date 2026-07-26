@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Discussions
+    url: https://github.com/ekosistema/nexus-prompt-suite/discussions
+    about: Ask questions, share ideas, and discuss with the community
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/ekosistema/nexus-prompt-suite/security/policy
+    about: Report a security vulnerability (do not open a public issue)
+  - name: 📖 Documentation
+    url: https://github.com/ekosistema/nexus-prompt-suite/blob/main/README.md
+    about: Read the documentation before opening an issue
