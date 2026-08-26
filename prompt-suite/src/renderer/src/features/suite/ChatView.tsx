@@ -28,6 +28,7 @@ interface ChatViewProps {
     onCopy: () => void;
     copied: boolean;
     suiteLang: 'es' | 'en';
+    onSelectHistory: (messages: Message[]) => void;
 }
 
 export function ChatView({
@@ -42,6 +43,7 @@ export function ChatView({
     onCopy,
     copied,
     suiteLang,
+    onSelectHistory,
 }: ChatViewProps) {
     const [chatInput, setChatInput] = useState('');
     const [history, setHistory] = useState<ChatHistoryItem[]>([]);
@@ -64,10 +66,12 @@ export function ChatView({
 
     const loadHistoryItem = (item: ChatHistoryItem) => {
         setCurrentChatId(item.id);
+        onSelectHistory(item.messages);
     };
 
     const startNewChat = () => {
         setCurrentChatId(null);
+        onSelectHistory([]);
     };
 
     const deleteHistoryItem = (id: string) => {
@@ -92,7 +96,7 @@ export function ChatView({
             <div className="flex items-center gap-3 shrink-0">
                 <button
                     onClick={startNewChat}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-500 text-gray-900 font-bold text-sm hover:opacity-90 transition-all shadow-lg"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-500 text-gray-900 font-bold text-sm hover:opacity-90 transition-all shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                     <Plus size={16} />
                     {t('chat.new', suiteLang) || 'New Chat'}
@@ -107,7 +111,7 @@ export function ChatView({
                         )}
                     >
                         {copied ? <Check size={14} /> : <Copy size={14} />}
-                        {copied ? 'Copied!' : 'Copy'}
+                        {copied ? t('chat.copied', suiteLang) : t('chat.copy', suiteLang)}
                     </button>
                 )}
             </div>
@@ -123,11 +127,11 @@ export function ChatView({
             <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[280px_1fr_360px] gap-4">
                 <div className="hidden xl:flex flex-col bg-card border border-border rounded-xl shadow-sm overflow-hidden">
                     <div className="p-3 border-b border-border">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Historial</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('chat.history', suiteLang)}</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
                         {history.length === 0 ? (
-                            <p className="text-[11px] text-center text-muted-foreground py-8">No hay chats recientes</p>
+                            <p className="text-[11px] text-center text-muted-foreground py-8">{t('chat.no_recent', suiteLang)}</p>
                         ) : (
                             history.map(item => (
                                 <div
@@ -152,30 +156,30 @@ export function ChatView({
                     </div>
                 </div>
 
-                <div className="flex flex-col bg-zinc-950 border border-border rounded-xl shadow-lg overflow-hidden xl:col-span-1">
+                <div className="flex flex-col bg-background border border-border rounded-xl shadow-lg overflow-hidden xl:col-span-1">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5 shrink-0">
-                        <span className="text-xs font-mono text-muted-foreground uppercase">Chat Local</span>
-                        <span className="text-[10px] text-muted-foreground/60">{messages.filter(m => m.role !== 'system').length} messages</span>
+                        <span className="text-xs font-mono text-muted-foreground uppercase">{t('nav.chat', suiteLang)}</span>
+                        <span className="text-[10px] text-muted-foreground/60">{messages.filter(m => m.role !== 'system').length} {t('chat.messages', suiteLang)}</span>
                     </div>
 
                     <div className="flex-1 p-4 overflow-y-auto" ref={outputRef}>
                         {isLoading && (
                             <div className="flex items-center justify-center h-full">
-                                <LoadingSpinner size="md" label={isThinking ? "AI is thinking..." : "Generating..."} />
+                                <LoadingSpinner size="md" label={isThinking ? t('chat.thinking', suiteLang) : t('chat.generating', suiteLang)} />
                             </div>
                         )}
 
                         {error && (
                             <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive text-sm mb-4" role="alert">
-                                <strong>Error:</strong> {error}
+                                <strong>{t('chat.error', suiteLang)}</strong> {error}
                             </div>
                         )}
 
                         {messages.length === 0 && !isThinking ? (
                             <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40">
                                 <MessageSquare size={48} className="mb-4 text-primary" />
-                                <h3 className="text-lg font-bold mb-2">Nueva Conversación</h3>
-                                <p className="text-sm">Escribe algo abajo para comenzar a hablar con el modelo local.</p>
+                                <h3 className="text-lg font-bold mb-2">{t('chat.new_conversation', suiteLang)}</h3>
+                                <p className="text-sm">{t('chat.start_hint', suiteLang)}</p>
                             </div>
                         ) : (
                             <div className="flex flex-col gap-4">
@@ -205,7 +209,7 @@ export function ChatView({
                                 {isThinking && (
                                     <div className="flex items-center gap-2 text-muted-foreground animate-pulse text-xs">
                                         <Bot size={14} />
-                                        <span>AI is typing...</span>
+                                        <span>{t('chat.typing', suiteLang)}</span>
                                     </div>
                                 )}
                             </div>
@@ -216,8 +220,8 @@ export function ChatView({
                         <form onSubmit={handleChatSend} className="flex items-center gap-2">
                             <input
                                 type="text"
-                                className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-zinc-600"
-                                placeholder="Escribe un mensaje..."
+                                className="flex-1 bg-input/40 border border-input rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/60 transition-all placeholder:text-muted-foreground/60"
+                                placeholder={t('chat.placeholder', suiteLang)}
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 disabled={isThinking}
@@ -225,7 +229,7 @@ export function ChatView({
                             <button
                                 type="submit"
                                 disabled={!chatInput.trim() || isThinking}
-                                className="p-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="p-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             >
                                 <Send size={18} />
                             </button>
@@ -233,16 +237,16 @@ export function ChatView({
                     </div>
                 </div>
 
-                <div className="hidden xl:flex flex-col bg-zinc-950 border border-border rounded-xl shadow-lg overflow-hidden">
+                <div className="hidden xl:flex flex-col bg-background border border-border rounded-xl shadow-lg overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5 shrink-0">
-                        <span className="text-xs font-mono text-muted-foreground uppercase">Prompt Preview</span>
+                        <span className="text-xs font-mono text-muted-foreground uppercase">{t('chat.prompt_preview', suiteLang)}</span>
                         {messages.length > 0 && (
                             <button
                                 onClick={onCopy}
                                 className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 text-muted-foreground hover:text-foreground transition-colors text-[10px]"
                             >
                                 {copied ? <Check size={10} /> : <Copy size={10} />}
-                                {copied ? 'Copied' : 'Copy'}
+                                {copied ? t('chat.copied', suiteLang) : t('chat.copy', suiteLang)}
                             </button>
                         )}
                     </div>
@@ -255,7 +259,7 @@ export function ChatView({
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                                 <FileText size={32} className="mb-3 text-muted-foreground" />
-                                <p className="text-xs text-muted-foreground">El prompt optimizado aparecerá aquí</p>
+                                <p className="text-xs text-muted-foreground">{t('chat.optimized_here', suiteLang)}</p>
                             </div>
                         )}
                     </div>

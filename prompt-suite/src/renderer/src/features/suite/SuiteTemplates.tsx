@@ -537,7 +537,7 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                             <label className="text-xs font-medium opacity-80">{t('templates.ct.category', lang)}</label>
                             <div className="relative">
                                 <select
-                                    className="w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                    className="w-full bg-input/40 border border-input rounded-md h-9 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 ring-ring/60 ring-offset-2 ring-offset-background transition-all select"
                                     value={newCategory}
                                     onChange={(e) => setNewCategory(e.target.value)}
                                 >
@@ -547,9 +547,6 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                                     <option value="writing">{t('templates.cat.writing', lang)}</option>
                                     <option value="business">{t('templates.cat.business', lang)}</option>
                                 </select>
-                                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
-                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </div>
                             </div>
                         </div>
 

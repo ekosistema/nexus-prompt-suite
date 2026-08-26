@@ -82,7 +82,7 @@ export function SettingsDashboard(): JSX.Element {
         }
     }, [settings.aiProvider]);
 
-    const inputClass = "w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-all";
+    const inputClass = "w-full bg-input/40 border border-input rounded-md h-9 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 ring-ring/60 ring-offset-2 ring-offset-background transition-all";
     const labelClass = "text-sm font-medium mb-1.5 block opacity-85";
 
     return (
@@ -153,7 +153,7 @@ export function SettingsDashboard(): JSX.Element {
                                 <label htmlFor="ai-provider" className={labelClass}>{t('settings.provider', lang)}</label>
                                 <select
                                     id="ai-provider"
-                                    className={inputClass}
+                                    className={inputClass + ' select'}
                                     value={settings.aiProvider}
                                     onChange={(e) => handleProviderChange(e.target.value)}
                                 >
@@ -287,7 +287,7 @@ export function SettingsDashboard(): JSX.Element {
                                         {availableModels.length > 0 ? (
                                             <select
                                                 id="provider-model"
-                                                className={inputClass}
+                                                className={inputClass + ' select'}
                                                 value={settings.model}
                                                 onChange={(e) => updateSetting('model', e.target.value)}
                                             >
@@ -343,9 +343,9 @@ export function SettingsDashboard(): JSX.Element {
                                     role="switch"
                                     aria-checked={settings.streaming}
                                     onClick={() => updateSetting('streaming', !settings.streaming)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${settings.streaming ? 'bg-primary' : 'bg-secondary'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${settings.streaming ? 'bg-primary' : 'bg-muted hover:bg-muted-foreground/35'}`}
                                 >
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.streaming ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-foreground transition-transform duration-base ${settings.streaming ? 'translate-x-6' : 'translate-x-1'}`} style={{ transitionTimingFunction: 'var(--ease-snap)' }} />
                                 </button>
                             </div>
 

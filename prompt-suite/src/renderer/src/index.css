@@ -4,26 +4,56 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
+    --background: 240 12% 4%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 240 11% 5.5%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 240 11% 7.5%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 6% 17%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 6% 70%;
+    --accent: 240 6% 17%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62% 34%;
+    --destructive-text: 0 84% 62%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --radius: 0.5rem;
+    --border: 240 6% 22%;
+    --input: 240 6% 13%;
+    --ring: 240 6% 88%;
+    --radius: 0.625rem;
+
+    /* Per-module accent tokens */
+    --module-genesis: 38 92% 55%;
+    --module-genesis-text: 38 95% 72%;
+    --module-dev: 217 91% 60%;
+    --module-dev-text: 217 91% 74%;
+    --module-audit: 199 89% 54%;
+    --module-audit-text: 199 93% 70%;
+    --module-studio: 258 90% 66%;
+    --module-studio-text: 258 92% 80%;
+    --module-social: 330 81% 60%;
+    --module-social-text: 330 84% 76%;
+    --module-templates: 160 84% 39%;
+    --module-templates-text: 160 84% 66%;
+    --module-chat: 243 75% 59%;
+    --module-chat-text: 243 80% 76%;
+    --module-foreground: 0 0% 10%;
+
+    /* Semantic tokens */
+    --success: 160 84% 45%;
+    --warning: 38 92% 55%;
+    --info: 217 91% 60%;
+
+    /* Motion tokens */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --duration-fast: 120ms;
+    --duration-base: 160ms;
+    --duration-slow: 240ms;
   }
 }
 
@@ -38,8 +68,8 @@
 
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
@@ -47,7 +77,20 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+    background: hsl(240 6% 18%);
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(240 6% 30%);
+    background-clip: padding-box;
+  }
+
+  ::selection {
+    background: hsl(240 6% 30% / 0.45);
+    color: hsl(0 0% 98%);
   }
 }
 
@@ -80,21 +123,27 @@
   }
 }
 
-/* Custom Select - Remove native Mac styling */
+/* Custom Select - Unify native selects with custom form selects */
 @layer components {
-  select {
+  .select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
+    padding-right: 2.25rem; /* room for the chevron */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
+    background-position: right 0.6rem center;
+    background-size: 0.95rem;
   }
 
-  select:focus {
+  .select:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

@@ -12,6 +12,7 @@ export const translations = {
         'nav.templates': 'Plantillas',
         'nav.settings': 'Configuración',
         'nav.credits': 'Designed by CeleroLab',
+        'nav.chat': 'Chat Local',
 
         // Settings
         'settings.title': 'Configuración',
@@ -47,6 +48,47 @@ export const translations = {
 
         // Chat
         'chat.new': 'Nuevo Chat',
+        'chat.history': 'Historial',
+        'chat.no_recent': 'No hay chats recientes',
+        'chat.new_conversation': 'Nueva Conversación',
+        'chat.start_hint': 'Escribe algo abajo para comenzar a hablar con el modelo local.',
+        'chat.placeholder': 'Escribe un mensaje...',
+        'chat.prompt_preview': 'Prompt Preview',
+        'chat.optimized_here': 'El prompt optimizado aparecerá aquí',
+        'chat.messages': 'mensajes',
+        'chat.thinking': 'AI is thinking...',
+        'chat.generating': 'Generando...',
+        'chat.typing': 'AI is typing...',
+        'chat.error': 'Error:',
+        'chat.copy': 'Copiar',
+        'chat.copied': 'Copiado!',
+
+        // Output Panel
+        'output.generated': 'Prompt Generado',
+        'output.optimized': 'Prompt Optimizado',
+        'output.waiting': 'Esperando resultado',
+        'output.waiting_desc': 'El prompt optimizado aparecerá aquí.',
+        'output.waiting_desc_done': 'El prompt optimizado aparecerá aquí cuando el Architect termine.',
+        'output.refine_placeholder': 'Refinar prompt...',
+        'output.run_architect': 'Run Architect',
+        'output.re_run_architect': 'Re-run Architect',
+        'output.execute_chat': 'Execute in Chat',
+        'output.thinking': 'AI is thinking...',
+        'output.generating_prompt': 'Generando prompt...',
+        'output.typing': 'AI is typing...',
+        'output.error': 'Error:',
+
+        // Prompt Viewer
+        'viewer.title': 'Prompt Viewer',
+        'viewer.original': 'Original',
+        'viewer.optimized': 'Optimizado',
+        'viewer.words': 'palabras',
+        'viewer.chars': 'caracteres',
+        'viewer.copy': 'Copiar',
+        'viewer.copied': 'Copiado!',
+        'viewer.generating': 'Generando prompt optimizado...',
+        'viewer.run_architect': 'Ejecuta Run Architect para ver la versión optimizada',
+        'viewer.no_prompt': 'Aún no se ha generado un prompt',
 
         // Suite Common
         'suite.generate': 'Generar Prompt',
@@ -229,6 +271,7 @@ export const translations = {
         'nav.templates': 'Templates',
         'nav.settings': 'Settings',
         'nav.credits': 'Designed by CeleroLab',
+        'nav.chat': 'Chat Local',
 
         // Settings
         'settings.title': 'Settings',
@@ -264,6 +307,47 @@ export const translations = {
 
         // Chat
         'chat.new': 'New Chat',
+        'chat.history': 'History',
+        'chat.no_recent': 'No recent chats',
+        'chat.new_conversation': 'New Conversation',
+        'chat.start_hint': 'Type something below to start talking with the local model.',
+        'chat.placeholder': 'Type a message...',
+        'chat.prompt_preview': 'Prompt Preview',
+        'chat.optimized_here': 'The optimized prompt will appear here',
+        'chat.messages': 'messages',
+        'chat.thinking': 'AI is thinking...',
+        'chat.generating': 'Generating...',
+        'chat.typing': 'AI is typing...',
+        'chat.error': 'Error:',
+        'chat.copy': 'Copy',
+        'chat.copied': 'Copied!',
+
+        // Output Panel
+        'output.generated': 'Generated Prompt',
+        'output.optimized': 'Optimized Prompt',
+        'output.waiting': 'Waiting for result',
+        'output.waiting_desc': 'The optimized prompt will appear here.',
+        'output.waiting_desc_done': 'The optimized prompt will appear here when the Architect finishes.',
+        'output.refine_placeholder': 'Refine prompt...',
+        'output.run_architect': 'Run Architect',
+        'output.re_run_architect': 'Re-run Architect',
+        'output.execute_chat': 'Execute in Chat',
+        'output.thinking': 'AI is thinking...',
+        'output.generating_prompt': 'Generating prompt...',
+        'output.typing': 'AI is typing...',
+        'output.error': 'Error:',
+
+        // Prompt Viewer
+        'viewer.title': 'Prompt Viewer',
+        'viewer.original': 'Original',
+        'viewer.optimized': 'Optimized',
+        'viewer.words': 'words',
+        'viewer.chars': 'chars',
+        'viewer.copy': 'Copy',
+        'viewer.copied': 'Copied!',
+        'viewer.generating': 'Generating optimized prompt...',
+        'viewer.run_architect': 'Run Architect to see the optimized version',
+        'viewer.no_prompt': 'No prompt generated yet',
 
         // Suite Common
         'suite.generate': 'Generate Prompt',

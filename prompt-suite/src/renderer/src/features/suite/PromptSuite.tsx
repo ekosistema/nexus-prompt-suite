@@ -13,7 +13,8 @@ import { useAIInference } from '../../hooks/useAIInference';
 import { useApp } from '../../contexts/AppContext';
 import { Message } from '../../services/ai';
 import { t } from '../../lib/i18n';
-import { Sparkles, Terminal, Copy, Check, FileText, Settings2, PanelLeft, PanelRight, Columns } from 'lucide-react';
+import { Sparkles, Copy, Check, FileText, Settings2, PanelLeft, PanelRight, Columns } from 'lucide-react';
+import { NAV_ITEMS, MODULE_COLORS } from './navConfig';
 import { ChatView } from './ChatView';
 import { SuiteOutputPanel } from './SuiteOutputPanel';
 
@@ -163,34 +164,9 @@ export function PromptSuite(props: PromptSuiteProps) {
     const isChatTab = activeTab === 'chat';
     const hasPrompt = staticPrompt.length > 0;
 
-    const tabIcons: Record<string, React.ReactNode> = {
-        genesis: <Sparkles size={16} />,
-        dev: <Terminal size={16} />,
-        audit: <Terminal size={16} />,
-        studio: <Terminal size={16} />,
-        social: <Terminal size={16} />,
-        templates: <Terminal size={16} />,
-    };
-
-    const tabColors: Record<string, string> = {
-        genesis: 'amber',
-        dev: 'blue',
-        audit: 'sky',
-        studio: 'purple',
-        social: 'pink',
-        templates: 'emerald',
-    };
-
-    const colorMap: Record<string, { bg: string; text: string; hover: string; border: string }> = {
-        amber: { bg: 'bg-amber-500', text: 'text-amber-400', hover: 'hover:bg-amber-500/10', border: 'border-amber-500/30' },
-        blue: { bg: 'bg-blue-500', text: 'text-blue-400', hover: 'hover:bg-blue-500/10', border: 'border-blue-500/30' },
-        sky: { bg: 'bg-sky-500', text: 'text-sky-400', hover: 'hover:bg-sky-500/10', border: 'border-sky-500/30' },
-        purple: { bg: 'bg-purple-500', text: 'text-purple-400', hover: 'hover:bg-purple-500/10', border: 'border-purple-500/30' },
-        pink: { bg: 'bg-pink-500', text: 'text-pink-400', hover: 'hover:bg-pink-500/10', border: 'border-pink-500/30' },
-        emerald: { bg: 'bg-emerald-500', text: 'text-emerald-400', hover: 'hover:bg-emerald-500/10', border: 'border-emerald-500/30' },
-    };
-
-    const currentColor = colorMap[tabColors[activeTab]] || colorMap.amber;
+    const currentNavItem = NAV_ITEMS.find(item => item.id === activeTab) || NAV_ITEMS[0];
+    const CurrentTabIcon = currentNavItem.icon;
+    const currentColor = MODULE_COLORS[currentNavItem.hue] || MODULE_COLORS.amber;
 
     const renderFormContent = () => {
         const registerGenerate = (fn: () => void) => {
@@ -222,6 +198,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                 onCopy={handleCopy}
                 copied={copied}
                 suiteLang={suiteLang}
+                onSelectHistory={(messages) => setMessages(messages)}
             />
         );
     }
@@ -236,10 +213,10 @@ export function PromptSuite(props: PromptSuiteProps) {
                         GENERATE_BTN_HEIGHT,
                         "flex items-center justify-center gap-2.5 px-5 rounded-lg font-bold text-sm transition-all shadow-lg shrink-0",
                         currentColor.bg,
-                        "text-gray-900 hover:opacity-90 active:scale-[0.98]"
+                        "text-gray-900 hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     )}
                 >
-                    {tabIcons[activeTab]}
+                    {CurrentTabIcon && <CurrentTabIcon size={16} />}
                     <span className="whitespace-nowrap">{t(`${activeTab}.btn` as any, suiteLang) || 'Generate'}</span>
                 </button>
 
@@ -247,7 +224,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                     <button
                         onClick={() => setViewMode('form')}
                         className={cn(
-                            "flex items-center gap-1 px-2.5 rounded-md text-xs font-medium transition-all h-full",
+                            "flex items-center gap-1 px-2.5 rounded-md text-xs font-medium transition-all h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                             viewMode === 'form' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
@@ -257,7 +234,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                     <button
                         onClick={() => setViewMode('prompt')}
                         className={cn(
-                            "flex items-center gap-1 px-2.5 rounded-md text-xs font-medium transition-all h-full",
+                            "flex items-center gap-1 px-2.5 rounded-md text-xs font-medium transition-all h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                             viewMode === 'prompt' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
@@ -267,7 +244,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                     <button
                         onClick={() => setViewMode('split')}
                         className={cn(
-                            "hidden xl:flex items-center gap-1 px-2.5 rounded-md text-xs font-medium transition-all h-full",
+                            "hidden xl:flex items-center gap-1 px-2.5 rounded-md text-xs font-medium transition-all h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                             viewMode === 'split' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
@@ -280,7 +257,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                     <button
                         onClick={handleCopy}
                         className={cn(
-                            "flex items-center gap-2 px-3 h-8 rounded-lg text-xs font-bold transition-all border shrink-0",
+                            "flex items-center gap-2 px-3 h-8 rounded-lg text-xs font-bold transition-all border shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                             copied ? "bg-green-600/20 border-green-600/30 text-green-400" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
                         )}
                     >
@@ -293,7 +270,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                     <button
                         onClick={() => setAutoExecute(!autoExecute)}
                         className={cn(
-                            "flex items-center gap-1.5 px-3 h-8 rounded-full border text-xs transition-all shrink-0",
+                            "flex items-center gap-1.5 px-3 h-8 rounded-full border text-xs transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                             autoExecute ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary/50 border-border text-muted-foreground"
                         )}
                     >
@@ -337,6 +314,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                             refinementText={refinementText}
                             setRefinementText={setRefinementText}
                             showRefine={aiMessages.length > 0 || isThinking}
+                            lang={suiteLang}
                         />
                     </div>
                 )}
@@ -363,6 +341,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                                 refinementText={refinementText}
                                 setRefinementText={setRefinementText}
                                 showRefine={aiMessages.length > 0 || isThinking}
+                                lang={suiteLang}
                             />
                         </div>
                     </div>

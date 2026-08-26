@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Copy, Check, FileText, Bot, ChevronDown, ChevronUp, EyeOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { t } from '../../lib/i18n';
 
 type PromptVersion = 'original' | 'optimized';
 
@@ -9,9 +10,10 @@ interface PromptViewerPanelProps {
     aiResult: string;
     hasAIResult: boolean;
     isThinking: boolean;
+    lang: 'es' | 'en';
 }
 
-export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThinking }: PromptViewerPanelProps) {
+export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThinking, lang }: PromptViewerPanelProps) {
     const [version, setVersion] = useState<PromptVersion>('original');
     const [copied, setCopied] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -34,7 +36,7 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/30">
                 <div className="flex items-center gap-2">
                     <FileText size={16} className="text-primary" />
-                    <span className="text-sm font-semibold">Prompt Viewer</span>
+                    <span className="text-sm font-semibold">{t('viewer.title', lang)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center bg-secondary/50 rounded-lg p-0.5 gap-0.5">
@@ -46,7 +48,7 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
                             )}
                         >
                             <FileText size={12} />
-                            Original
+                            {t('viewer.original', lang)}
                         </button>
                         <button
                             onClick={() => setVersion('optimized')}
@@ -58,7 +60,7 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
                             )}
                         >
                             <Bot size={12} />
-                            Optimized
+                            {t('viewer.optimized', lang)}
                         </button>
                     </div>
                     <button
@@ -74,8 +76,8 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
                 <>
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/20 text-[10px] text-muted-foreground">
                         <div className="flex items-center gap-3">
-                            <span>{wordCount} words</span>
-                            <span>{charCount} chars</span>
+                            <span>{wordCount} {t('viewer.words', lang)}</span>
+                            <span>{charCount} {t('viewer.chars', lang)}</span>
                         </div>
                         <button
                             onClick={handleCopy}
@@ -88,7 +90,7 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
                             )}
                         >
                             {copied ? <Check size={12} /> : <Copy size={12} />}
-                            {copied ? 'Copied!' : 'Copy'}
+                            {copied ? t('viewer.copied', lang) : t('viewer.copy', lang)}
                         </button>
                     </div>
 
@@ -96,7 +98,7 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
                         {isThinking && version === 'optimized' && !hasAIResult ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <Bot size={32} className="text-primary animate-pulse mb-3" />
-                                <p className="text-sm text-muted-foreground">Generating optimized prompt...</p>
+                                <p className="text-sm text-muted-foreground">{t('viewer.generating', lang)}</p>
                             </div>
                         ) : activePrompt ? (
                             version === 'original' ? (
@@ -114,7 +116,7 @@ export function PromptViewerPanel({ staticPrompt, aiResult, hasAIResult, isThink
                             <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
                                 <EyeOff size={24} className="mb-2" />
                                 <p className="text-xs text-muted-foreground">
-                                    {version === 'optimized' ? 'Run Architect to see the optimized version' : 'No prompt generated yet'}
+                                    {version === 'optimized' ? t('viewer.run_architect', lang) : t('viewer.no_prompt', lang)}
                                 </p>
                             </div>
                         )}

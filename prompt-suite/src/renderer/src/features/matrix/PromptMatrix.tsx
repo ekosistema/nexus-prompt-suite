@@ -103,7 +103,7 @@ ${currentFormat.structure
                     <div className="space-y-3">
                         <label className="text-sm font-medium text-muted-foreground">1. Format / Objective</label>
                         <select
-                            className="w-full bg-secondary/50 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="w-full bg-input/40 border border-input rounded-md h-9 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 ring-ring/60 ring-offset-2 ring-offset-background transition-all select"
                             value={formatIndex}
                             onChange={(e) => setFormatIndex(Number(e.target.value))}
                         >

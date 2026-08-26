@@ -121,7 +121,7 @@ export function DynamicForm({ fields, values, onChange, lang }: DynamicFormProps
                 return (
                     <input
                         type="text"
-                        className="w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        className="w-full bg-input/40 border border-input rounded-md h-9 px-3 text-sm focus-visible:outline-none focus-visible:ring-2 ring-ring/60 ring-offset-2 ring-offset-background"
                         placeholder={field.placeholder?.[lang]}
                         value={value || ''}
                         onChange={(e) => onChange(field.id, e.target.value)}
@@ -131,7 +131,7 @@ export function DynamicForm({ fields, values, onChange, lang }: DynamicFormProps
             case 'textarea':
                 return (
                     <textarea
-                        className="w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm resize-y min-h-[80px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        className="w-full bg-input/40 border border-input rounded-md px-3 py-2 text-sm resize-y min-h-[80px] focus-visible:outline-none focus-visible:ring-2 ring-ring/60 ring-offset-2 ring-offset-background"
                         placeholder={field.placeholder?.[lang]}
                         value={value || ''}
                         onChange={(e) => onChange(field.id, e.target.value)}
@@ -232,11 +232,11 @@ export function DynamicForm({ fields, values, onChange, lang }: DynamicFormProps
                         aria-checked={!!value}
                         onClick={() => onChange(field.id, !value)}
                         className={cn(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                            value ? 'bg-primary' : 'bg-secondary'
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                            value ? 'bg-primary' : 'bg-muted hover:bg-muted-foreground/35'
                         )}
                     >
-                        <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform", value ? 'translate-x-6' : 'translate-x-1')} />
+                        <span className={cn("inline-block h-4 w-4 transform rounded-full bg-foreground transition-transform duration-base", value ? 'translate-x-6' : 'translate-x-1')} style={{ transitionTimingFunction: 'var(--ease-snap)' }} />
                     </button>
                 );
 

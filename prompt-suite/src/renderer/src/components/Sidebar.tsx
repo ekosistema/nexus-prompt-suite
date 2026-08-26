@@ -1,13 +1,14 @@
 import { useMemo, KeyboardEvent } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
-import { Settings, Lightbulb, Terminal, ShieldCheck, BookOpen, Share2, MessageSquare, Library, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { t, Lang } from '../lib/i18n';
+import { NAV_ITEMS, NavItemId } from '../features/suite/navConfig';
 
 import logo from '../../favicon.png';
 
-export type NavItem = 'genesis' | 'dev' | 'audit' | 'studio' | 'social' | 'templates' | 'chat' | 'settings';
- 
+export type NavItem = NavItemId;
+
 interface SidebarProps {
     current: NavItem;
     onChange: (item: NavItem) => void;
@@ -15,17 +16,11 @@ interface SidebarProps {
     collapsed: boolean;
     onToggleCollapse: () => void;
 }
- 
+
 export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }: SidebarProps) {
-    const menu = useMemo(() => [
-        { id: 'genesis' as const, label: t('nav.genesis', lang), icon: Lightbulb, color: 'amber' },
-        { id: 'dev' as const, label: t('nav.dev', lang), icon: Terminal, color: 'blue' },
-        { id: 'audit' as const, label: t('nav.audit', lang), icon: ShieldCheck, color: 'sky' },
-        { id: 'studio' as const, label: t('nav.studio', lang), icon: BookOpen, color: 'purple' },
-        { id: 'social' as const, label: t('nav.social', lang), icon: Share2, color: 'pink' },
-        { id: 'templates' as const, label: t('nav.templates', lang), icon: Library, color: 'emerald' },
-        { id: 'chat' as const, label: 'Chat Local', icon: MessageSquare, color: 'indigo' },
-    ], [lang]);
+    const moduleMenu = useMemo(() => NAV_ITEMS.filter(item => item.id !== 'settings'), []);
+    const settingsItem = useMemo(() => NAV_ITEMS.find(item => item.id === 'settings')!, []);
+    const SettingsIcon = settingsItem.icon;
 
     const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, item: NavItem) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -62,8 +57,9 @@ export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }
             )}
 
             <nav aria-label="Workspace sections" className={cn("-mx-3 flex-1", collapsed && "-mx-2")}>
-                {menu.map((item) => {
+                {moduleMenu.map((item) => {
                     const Icon = item.icon;
+                    const label = t(item.labelKey, lang);
                     const isActive = current === item.id;
 
                     const colorClasses = {
@@ -82,18 +78,18 @@ export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }
                             onClick={() => onChange(item.id)}
                             onKeyDown={(e) => handleKeyDown(e, item.id)}
                             aria-current={isActive ? 'page' : undefined}
-                            title={collapsed ? item.label : undefined}
+                            title={collapsed ? label : undefined}
                             className={cn(
-                                "flex items-center transition-all duration-200 w-full",
+                                "flex items-center transition-all duration-200 w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                                 collapsed
                                     ? "justify-center px-0 py-2.5"
                                     : "gap-3 px-6 py-2.5",
                                 "text-sm font-medium",
-                                colorClasses[item.color as keyof typeof colorClasses]
+                                colorClasses[item.hue as keyof typeof colorClasses]
                             )}
                         >
                             <Icon size={18} aria-hidden="true" />
-                            {!collapsed && item.label}
+                            {!collapsed && label}
                         </button>
                     )
                 })}
@@ -104,9 +100,9 @@ export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }
                     onClick={() => onChange('settings')}
                     onKeyDown={(e) => handleKeyDown(e, 'settings')}
                     aria-current={current === 'settings' ? 'page' : undefined}
-                    title={collapsed ? t('nav.settings', lang) : undefined}
+                    title={collapsed ? t(settingsItem.labelKey, lang) : undefined}
                     className={cn(
-                        "flex items-center font-medium transition-all duration-200 w-full",
+                        "flex items-center font-medium transition-all duration-200 w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                         collapsed
                             ? "justify-center px-0 py-2.5 mb-2"
                             : "gap-3 px-6 py-2.5 mb-4",
@@ -116,15 +112,15 @@ export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }
                             : "text-muted-foreground hover:bg-gray-600/10 hover:text-gray-400"
                     )}
                 >
-                    <Settings size={18} aria-hidden="true" />
-                    {!collapsed && t('nav.settings', lang)}
+                    <SettingsIcon size={18} aria-hidden="true" />
+                    {!collapsed && t(settingsItem.labelKey, lang)}
                 </button>
 
                 {!collapsed && (
                     <>
                         <div className="border-t border-border/50 pt-4 px-3 pb-4">
                             <p className="text-[10px] text-muted-foreground text-center leading-relaxed" role="contentinfo">
-                                Nexus Prompt Suite v1.0.1
+                                Nexus Prompt Suite v1.1.0
                                 <br />
                                 <button
                                     onClick={() => open('https://celerolab.com?utm_source=nexus-prompt-suite&utm_medium=desktop-app&utm_campaign=credits')}
@@ -141,7 +137,7 @@ export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }
             <button
                 onClick={onToggleCollapse}
                 className={cn(
-                    "absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center hover:bg-secondary transition-colors z-30",
+                    "absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center hover:bg-secondary transition-colors z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
