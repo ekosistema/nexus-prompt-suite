@@ -63,7 +63,10 @@ jobs:
         with:
           tagName: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
           releaseName: "Nexus Prompt Suite v__VERSION__"
-          releaseDraft: false
+          # Draft releases keep the artifacts hidden from the public release page:
+          # assets are only downloadable by users with write access to the repo.
+          # Publish the release manually (web/API) when ready to go live.
+          releaseDraft: true
           prerelease: false
           projectPath: "./prompt-suite"
           args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
