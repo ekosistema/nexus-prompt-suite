@@ -163,7 +163,7 @@ nexus-prompt-suite/
 │   └── INLINE_STANDARDS.md           # 📐 Inline doc standards (RustDoc + JSDoc)
 ├── .github/workflows/
 │   └── build-and-release.yml         # 🔄 CI/CD — multi-platform matrix builds + security scans
-├── VERSION                           # 🔖 Current version (1.0.1)
+├── VERSION                           # 🔖 Current version (1.1.0)
 ├── LICENSE                           # 📜 MIT License
 ├── README.md                         # 📄 Project overview
 └── DEVELOPMENT.md                    # 📖 This document
@@ -319,7 +319,7 @@ npm audit                    # Frontend dependency audit
 
 The project uses GitHub Actions (`.github/workflows/build-and-release.yml`) to generate production binaries:
 
-1. **Trigger**: Pushing a tag (e.g., `v1.0.1`) or manual `workflow_dispatch`.
+1. **Trigger**: Pushing a tag (e.g., `v1.1.0`) or manual `workflow_dispatch`.
 2. **Matrix**: Parallel builds for:
    - `macos-latest` (aarch64 and x86_64)
    - `ubuntu-22.04`

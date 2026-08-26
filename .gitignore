@@ -44,3 +44,7 @@ out/
 target/
 gen/
 **/*.rs.bk
+
+# ai-dev agent development artifacts (UI polish specs, plan, tokens — not part of the app)
+.agent-context/
+specs/

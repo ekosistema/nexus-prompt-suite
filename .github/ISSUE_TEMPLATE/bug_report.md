@@ -29,7 +29,7 @@ What actually happened. Include error messages, screenshots, or logs if availabl
 
 | Detail | Value |
 | :--- | :--- |
-| **Nexus version** | e.g., 1.0.1 |
+| **Nexus version** | e.g., 1.1.0 |
 | **Operating system** | e.g., macOS 15.1, Windows 11, Ubuntu 24.04 |
 | **Architecture** | e.g., Apple Silicon (aarch64), x86_64 |
 | **AI provider** | e.g., OpenAI, Ollama, Anthropic |

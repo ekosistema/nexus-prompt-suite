@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status" />
   <img src="https://img.shields.io/badge/coverage-94%25-brightgreen?style=flat-square" alt="Coverage" />
-  <img src="https://img.shields.io/badge/version-v1.0.1-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/rust-1.77%2B-orange?style=flat-square" alt="Rust Version" />
@@ -44,7 +44,7 @@ Get Nexus Prompt Suite running in **under 2 minutes**:
 
 ### 1️⃣ Download the installer
 
-Grab the latest binary from the [Releases page](https://github.com/ekosistema/nexus-prompt-suite/releases):
+Grab the latest binary from [nexus.celerolab.com](https://nexus.celerolab.com):
 
 | Platform | Format |
 | :--- | :--- |
@@ -227,7 +227,7 @@ nexus-prompt-suite/
 ├── docs/
 │   ├── INLINE_STANDARDS.md          # RustDoc + JSDoc conventions
 │   └── screenshots/                 # Application screenshots
-├── VERSION                          # Semantic version (1.0.1)
+├── VERSION                          # Semantic version (1.1.0)
 ├── LICENSE                          # MIT License
 ├── DEVELOPMENT.md                   # Architecture deep-dive and dev guide
 └── prompt-suite/                    # ⚡ Main workspace
