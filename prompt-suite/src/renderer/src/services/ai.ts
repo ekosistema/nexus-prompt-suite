@@ -31,6 +31,7 @@ export interface AIRequest {
     temperature: number;
     numCtx: number;
     stream?: boolean;
+    apiKey?: string;
 }
 
 export const aiService = {
@@ -44,6 +45,7 @@ export const aiService = {
                 messages: request.messages,
                 temperature: request.temperature,
                 numCtx: request.numCtx,
+                apiKey: request.apiKey ?? null,
             }) as string;
             
             return response;

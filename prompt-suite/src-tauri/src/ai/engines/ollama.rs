@@ -4,6 +4,7 @@ use super::super::engine::{DefaultAiEngine, MAX_STREAM_SIZE};
 use super::super::types::Message;
 
 impl DefaultAiEngine {
+    #[allow(clippy::too_many_arguments)]
     pub async fn call_ollama(
         &self,
         endpoint: &str,
@@ -11,9 +12,12 @@ impl DefaultAiEngine {
         messages: Vec<Message>,
         temperature: f32,
         num_ctx: u32,
+        api_key: Option<String>,
     ) -> Result<String, String> {
+        let key = self.resolve_api_key("ollama", api_key, false).await?;
+
         let url = format!("{}/api/chat", endpoint.trim_end_matches('/'));
-        let res = self
+        let mut req = self
             .client
             .post(&url)
             .json(&serde_json::json!({
@@ -24,10 +28,22 @@ impl DefaultAiEngine {
                     "temperature": temperature,
                     "num_ctx": num_ctx
                 }
-            }))
+            }));
+        if let Some(k) = key {
+            req = req.header("Authorization", format!("Bearer {}", k));
+        }
+
+        let res = req
             .send()
             .await
             .map_err(|e| format!("Ollama connection error: {}", e))?;
+
+        if !res.status().is_success() {
+            return Err(Self::sanitize_error(
+                res.status(),
+                res.text().await.unwrap_or_default(),
+            ));
+        }
 
         let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
         Ok(json["message"]["content"]
@@ -36,6 +52,7 @@ impl DefaultAiEngine {
             .to_string())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn stream_ollama(
         &self,
         endpoint: &str,
@@ -43,9 +60,12 @@ impl DefaultAiEngine {
         messages: Vec<Message>,
         temperature: f32,
         num_ctx: u32,
+        api_key: Option<String>,
     ) -> Result<String, String> {
+        let key = self.resolve_api_key("ollama", api_key, false).await?;
+
         let url = format!("{}/api/chat", endpoint.trim_end_matches('/'));
-        let res = self
+        let mut req = self
             .client
             .post(&url)
             .json(&serde_json::json!({
@@ -56,10 +76,22 @@ impl DefaultAiEngine {
                     "temperature": temperature,
                     "num_ctx": num_ctx
                 }
-            }))
+            }));
+        if let Some(k) = key {
+            req = req.header("Authorization", format!("Bearer {}", k));
+        }
+
+        let res = req
             .send()
             .await
             .map_err(|e| format!("Ollama connection error: {}", e))?;
+
+        if !res.status().is_success() {
+            return Err(Self::sanitize_error(
+                res.status(),
+                res.text().await.unwrap_or_default(),
+            ));
+        }
 
         let mut full_content = String::new();
         let mut stream = res.bytes_stream();

@@ -120,7 +120,7 @@ export function Sidebar({ current, onChange, lang, collapsed, onToggleCollapse }
                     <>
                         <div className="border-t border-border/50 pt-4 px-3 pb-4">
                             <p className="text-[10px] text-muted-foreground text-center leading-relaxed" role="contentinfo">
-                                Nexus Prompt Suite v1.1.0
+                                Nexus Prompt Suite v1.2.0
                                 <br />
                                 <button
                                     onClick={() => open('https://celerolab.com?utm_source=nexus-prompt-suite&utm_medium=desktop-app&utm_campaign=credits')}

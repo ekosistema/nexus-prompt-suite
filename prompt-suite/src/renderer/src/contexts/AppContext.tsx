@@ -163,7 +163,7 @@ export function AppProvider({ children }: AppProviderProps) {
             
             // Auto-select first model if current model is not in the list
             if (models.length > 0 && !models.includes(settings.model)) {
-                setSettingsState(prev => ({ ...prev, model: models[0] }));
+                await setSettings(prev => ({ ...prev, model: models[0] }));
             }
         } catch (err) {
             safeLog('error', 'Failed to load models');

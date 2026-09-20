@@ -185,7 +185,7 @@ impl AiEngine for DefaultAiEngine {
         let provider_enum = self.validate_provider(provider)?;
         match provider_enum {
             Provider::Ollama => {
-                self.call_ollama(endpoint, model, messages, temperature, num_ctx)
+                self.call_ollama(endpoint, model, messages, temperature, num_ctx, api_key)
                     .await
             }
             Provider::Anthropic => {
@@ -226,7 +226,7 @@ impl AiEngine for DefaultAiEngine {
         let provider_enum = self.validate_provider(provider)?;
         match provider_enum {
             Provider::Ollama => {
-                self.stream_ollama(endpoint, model, messages, temperature, num_ctx)
+                self.stream_ollama(endpoint, model, messages, temperature, num_ctx, api_key)
                     .await
             }
             Provider::Anthropic | Provider::Gemini => {

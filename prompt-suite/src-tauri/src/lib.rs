@@ -1,6 +1,6 @@
 use tauri::Manager;
 
-/// Retrieves the application settings from the documents directory.
+/// Retrieves the application settings from the app-managed config directory.
 ///
 /// # Returns
 /// * `Ok(serde_json::Value)` - The parsed settings JSON object.
@@ -10,7 +10,7 @@ use tauri::Manager;
 /// * `Err(String)` - If file read fails or file size exceeds 1MB (CWE-400 mitigation).
 #[tauri::command]
 fn get_settings(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let mut path = app.path().document_dir().map_err(|e| e.to_string())?;
+    let mut path = app.path().app_config_dir().map_err(|e| e.to_string())?;
     path.push(".nexus_preferences.json");
     if path.exists() {
         let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
@@ -29,15 +29,19 @@ fn get_settings(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     }
 }
 
-/// Persists the application settings to the local JSON file.
+/// Persists the application settings to the local JSON file in the app config directory.
 #[tauri::command]
 fn save_settings(app: tauri::AppHandle, mut settings: serde_json::Value) -> Result<bool, String> {
-    let mut path = app.path().document_dir().map_err(|e| e.to_string())?;
+    let mut path = app.path().app_config_dir().map_err(|e| e.to_string())?;
     path.push(".nexus_preferences.json");
 
     // [CWE-312] Clean API keys from plain JSON
     if let Some(obj) = settings.as_object_mut() {
         obj.remove("apiKey");
+    }
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
     let content = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
@@ -178,13 +182,29 @@ async fn list_provider_models(
         endpoint.trim_end_matches('/').to_string()
     };
 
+    let engine = crate::ai::DefaultAiEngine::new();
+
+    // Resolve the key from the keyring when not provided by the caller,
+    // so a saved key is never silently ignored.
+    let resolved_key = engine.resolve_api_key(&provider, api_key, false).await?;
+
     if matches!(Provider::from_str(&provider), Ok(Provider::Ollama)) {
         let url = format!("{}{}", base, info.models_endpoint);
-        let res = client
-            .get(&url)
+        let mut req = client.get(&url);
+        if let Some(key) = &resolved_key {
+            req = req.bearer_auth(key);
+        }
+        let res = req
             .send()
             .await
             .map_err(|e| format!("Cannot connect to {}: {}", info.name, e))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let body = res.text().await.unwrap_or_default();
+            return Err(format!("API error {}: {}", status.as_u16(), body));
+        }
+
         let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
         let models = json["models"]
             .as_array()
@@ -195,8 +215,37 @@ async fn list_provider_models(
         return Ok(models);
     }
 
+    if provider == "gemini" {
+        let url = format!("{}{}", base, info.models_endpoint);
+        let key = resolved_key.ok_or_else(|| {
+            format!("{} API key is required. Add it in Settings.", info.name)
+        })?;
+        let res = client
+            .get(&url)
+            .header("x-goog-api-key", &key)
+            .send()
+            .await
+            .map_err(|e| format!("Cannot connect to {}: {}", info.name, e))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let body = res.text().await.unwrap_or_default();
+            return Err(format!("API error {}: {}", status.as_u16(), body));
+        }
+
+        let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+        let models = json["models"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|m| m["name"].as_str())
+            .filter_map(|name| name.strip_prefix("models/").map(|s| s.to_string()))
+            .collect::<Vec<String>>();
+        return Ok(models);
+    }
+
     if info.models_endpoint.is_empty() {
-        // Provider doesn't have a models endpoint (Anthropic, Gemini)
+        // Provider doesn't expose a public models endpoint (Anthropic)
         return Ok(info.default_models.clone());
     }
 
@@ -204,16 +253,21 @@ async fn list_provider_models(
     let mut req = client.get(&url);
 
     if info.needs_api_key {
-        let key = api_key.filter(|k| !k.is_empty());
-        if let Some(k) = key {
-            req = req.bearer_auth(&k);
-        } else {
-            return Ok(info.default_models.clone());
+        match &resolved_key {
+            Some(k) => {
+                req = req.bearer_auth(k);
+            }
+            None => {
+                return Err(format!(
+                    "{} API key is required. Add it in Settings.",
+                    info.name
+                ))
+            }
         }
     } else if info.supports_api_key {
         // Optional API key - use if available, but don't require it
-        if let Some(key) = api_key.filter(|k| !k.is_empty()) {
-            req = req.bearer_auth(&key);
+        if let Some(key) = &resolved_key {
+            req = req.bearer_auth(key);
         }
     }
 
@@ -223,7 +277,9 @@ async fn list_provider_models(
         .map_err(|e| format!("Cannot connect to {}: {}", info.name, e))?;
 
     if !res.status().is_success() {
-        return Ok(info.default_models.clone());
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("API error {}: {}", status.as_u16(), body));
     }
 
     let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
