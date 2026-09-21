@@ -53,14 +53,14 @@ export function SettingsDashboard(): JSX.Element {
         const provider = providers.find(p => p.id === providerId);
         if (!provider) return;
 
-        const storedKey = await aiService.getProviderApiKey(providerId);
+        const hasKey = await aiService.hasProviderApiKey(providerId);
 
         setSettings(prev => ({
             ...prev,
             aiProvider: providerId,
             endpoint: provider.default_url,
             model: provider.default_models[0] || '',
-            hasApiKey: !!storedKey,
+            hasApiKey: hasKey,
         }));
     };
 

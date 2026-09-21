@@ -8,12 +8,11 @@ import { SettingsDashboard } from './components/SettingsDashboard'
 
 function AppContent(): JSX.Element {
     const [tab, setTab] = useState<NavItem>('genesis')
-    const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const { lang, isLoadingSettings } = useApp()
 
     const isSuiteTab = (t: NavItem): t is SuiteTab => {
-        return ['genesis', 'dev', 'audit', 'studio', 'social', 'templates', 'chat'].includes(t);
+        return ['genesis', 'dev', 'audit', 'studio', 'social', 'templates'].includes(t);
     }
 
     if (isLoadingSettings) {
@@ -45,12 +44,6 @@ function AppContent(): JSX.Element {
                         activeTab={tab} 
                         lang={lang} 
                         onTabChange={setTab} 
-                        pendingPrompt={pendingPrompt}
-                        onClearPending={() => setPendingPrompt(null)}
-                        onExecuteInChat={(p: string) => {
-                            setPendingPrompt(p);
-                            setTab('chat');
-                        }}
                     />
                 </Suspense>
             )}

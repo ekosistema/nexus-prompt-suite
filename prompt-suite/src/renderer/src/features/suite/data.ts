@@ -17,48 +17,54 @@ export const promptTemplates: PromptTemplate[] = [
         title: { es: 'Dockerfile Optimizado', en: 'Optimized Dockerfile' },
         description: { es: 'Genera un Dockerfile multi-stage con buenas prácticas de seguridad y tamaño mínimo.', en: 'Generate a multi-stage Dockerfile with security best practices and minimal size.' },
         prompt: {
-            es: `Actúa como un **Senior DevOps Engineer** especializado en containerización.
+            es: `Actúa como un **Senior DevOps Engineer** especializado en containerización segura y eficiente.
 
-Crea un Dockerfile **multi-stage** optimizado para una aplicación con las siguientes características:
+Tu objetivo es producir un Dockerfile **multi-stage** listo para producción para una {{APP_TYPE}} desarrollada con {{LANG}}. El resultado debe ser reproducible, mínimo en tamaño y seguro por defecto.
+
+**Contexto de la aplicación:**
 - **Lenguaje/Framework:** {{LANG}}
-- **Tipo de app:** {{APP_TYPE}}
+- **Tipo de aplicación:** {{APP_TYPE}}
+- **Puerto de exposición:** {{CONTAINER_PORT}}
 
-REQUISITOS:
-1. Usa multi-stage builds para minimizar el tamaño final de la imagen.
-2. Implementa .dockerignore efectivo (lista los archivos a excluir).
-3. Usa distroless o Alpine como imagen base para producción.
-4. Ejecuta como usuario no-root (security best practice).
-5. Incluye healthcheck.
-6. Optimiza el orden de las instrucciones para maximizar el cache de Docker.
-7. Incluye comentarios explicando cada decisión.
+**PASOS:**
+1. Justifica la elección de imagen base (build y runtime) indicando versión concreta.
+2. Diseña stages de build y runtime separados para reducir el tamaño final de la imagen.
+3. Configura la ejecución como usuario **non-root** por defecto.
+4. Añade un 'HEALTHCHECK' acorde al tipo de aplicación.
+5. Ordena las instrucciones para maximizar el aprovechamiento del cache de capas.
+6. Documenta cada decisión con comentarios breves y accionables.
+7. Proporciona un '.dockerignore' mínimo y eficaz para el contexto de la app.
 
-FORMATO DE SALIDA:
-- Dockerfile completo con comentarios
-- .dockerignore recomendado
-- Comandos de build y run
-- Explicación de las optimizaciones aplicadas
+**FORMATO DE SALIDA:**
+- Dockerfile completo con comentarios.
+- '.dockerignore' recomendado.
+- Comandos de build y run con el puerto {{CONTAINER_PORT}}.
+- Checklist de las optimizaciones aplicadas.
 
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior DevOps Engineer** specializing in containerization.
+            en: `Act as a **Senior DevOps Engineer** specialized in secure, efficient containerization.
 
-Create an optimized **multi-stage** Dockerfile for an application with these characteristics:
+Your goal is to produce a production-ready **multi-stage** Dockerfile for a {{APP_TYPE}} built with {{LANG}}. The result must be reproducible, minimal in size, and secure by default.
+
+**Application context:**
 - **Language/Framework:** {{LANG}}
-- **App type:** {{APP_TYPE}}
+- **Application type:** {{APP_TYPE}}
+- **Exposed port:** {{CONTAINER_PORT}}
 
-REQUIREMENTS:
-1. Use multi-stage builds to minimize final image size.
-2. Implement an effective .dockerignore (list files to exclude).
-3. Use distroless or Alpine as production base image.
-4. Run as non-root user (security best practice).
-5. Include healthcheck.
-6. Optimize instruction ordering to maximize Docker cache.
-7. Include comments explaining each decision.
+**STEPS:**
+1. Justify the base image choice (build and runtime) with a pinned version.
+2. Separate build and runtime stages to minimize final image size.
+3. Run as a **non-root** user by default.
+4. Add a 'HEALTHCHECK' suited to the application type.
+5. Order instructions to maximize Docker layer caching.
+6. Document every decision with brief, actionable comments.
+7. Provide an effective, minimal '.dockerignore' for the app context.
 
-OUTPUT FORMAT:
-- Complete Dockerfile with comments
-- Recommended .dockerignore
-- Build and run commands
-- Explanation of optimizations applied
+**OUTPUT FORMAT:**
+- Complete Dockerfile with comments.
+- Recommended '.dockerignore'.
+- Build and run commands using port {{CONTAINER_PORT}}.
+- Checklist of the optimizations applied.
 
 LANGUAGE: {{LANG_OUTPUT}}`
         },
@@ -71,51 +77,55 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Pipeline CI/CD GitHub Actions', en: 'GitHub Actions CI/CD Pipeline' },
         description: { es: 'Genera un workflow completo de CI/CD con lint, test, build y deploy.', en: 'Generate a complete CI/CD workflow with lint, test, build, and deploy.' },
         prompt: {
-            es: `Actúa como un **Senior DevOps Engineer**.
+            es: `Actúa como un **Senior DevOps Engineer** experto en CI/CD con GitHub Actions.
 
-Crea un workflow de **GitHub Actions** completo para un proyecto con:
+Tu objetivo es generar un workflow completo de GitHub Actions para un proyecto en {{LANG}} (framework {{FRAMEWORK}}) que lleve el código desde lint hasta el despliegue automatizado en {{DEPLOY}}.
+
+**Contexto del proyecto:**
 - **Lenguaje:** {{LANG}}
 - **Framework:** {{FRAMEWORK}}
+- **Destino de despliegue:** {{DEPLOY}}
 
-EL WORKFLOW DEBE INCLUIR:
-1. **Lint**: Verificación de estilo de código
-2. **Type Check**: Verificación de tipos (si aplica)
-3. **Unit Tests**: Con coverage report
-4. **Build**: Compilación del proyecto
-5. **Security Scan**: Dependabot o similar
-6. **Deploy**: Despliegue automático en main (o manual con approval)
+**PASOS Y REQUISITOS:**
+1. Job de **lint** con el linter estándar del ecosistema.
+2. Job de **unit tests** con generación de coverage.
+3. Job de **build** que valide la compilación del proyecto.
+4. **Security scan** con las acciones recomendadas y config.
+5. Job de **deploy** disparado en 'main' (manual mediante 'workflow_dispatch' o approval).
+6. Cache de dependencias para acelerar los jobs.
+7. Configuración de secrets como variables de entorno cifradas.
+8. Notificación de estado y badge de status para el README.
 
-REQUISITOS:
-- Usa caching de dependencias para acelerar builds
-- Matrix de pruebas si es multi-plataforma
-- Variables de entorno seguras (secrets)
-- Notificaciones de estado
-- Badge de status para el README
+**FORMATO DE SALIDA:**
+- Archivo '.github/workflows/ci.yml' completo con comentarios.
+- Resumen de los secrets y variables de entorno requeridos.
+- Instrucciones para activar el badge de status.
 
-FORMATO: Archivo .github/workflows/ci.yml completo con comentarios explicativos.
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior DevOps Engineer**.
+            en: `Act as a **Senior DevOps Engineer** experienced in GitHub Actions CI/CD.
 
-Create a complete **GitHub Actions** workflow for a project with:
+Your goal is to generate a complete GitHub Actions workflow for a {{LANG}} project ({{FRAMEWORK}} framework) that takes code from lint to automated deployment on {{DEPLOY}}.
+
+**Project context:**
 - **Language:** {{LANG}}
 - **Framework:** {{FRAMEWORK}}
+- **Deploy target:** {{DEPLOY}}
 
-THE WORKFLOW MUST INCLUDE:
-1. **Lint**: Code style verification
-2. **Type Check**: Type verification (if applicable)
-3. **Unit Tests**: With coverage report
-4. **Build**: Project compilation
-5. **Security Scan**: Dependabot or similar
-6. **Deploy**: Automatic deploy on main (or manual with approval)
+**STEPS AND REQUIREMENTS:**
+1. **Lint** job using the ecosystem's standard linter.
+2. **Unit tests** job with coverage reporting.
+3. **Build** job that validates project compilation.
+4. **Security scan** with recommended actions and config.
+5. **Deploy** job triggered on 'main' (manual via 'workflow_dispatch' or approval).
+6. Dependency caching to speed up jobs.
+7. Secrets configured as encrypted environment variables.
+8. Status notification and status badge for the README.
 
-REQUIREMENTS:
-- Use dependency caching to speed up builds
-- Test matrix if multi-platform
-- Secure environment variables (secrets)
-- Status notifications
-- Status badge for README
+**OUTPUT FORMAT:**
+- Complete '.github/workflows/ci.yml' file with comments.
+- Summary of required secrets and environment variables.
+- Instructions to enable the status badge.
 
-FORMAT: Complete .github/workflows/ci.yml file with explanatory comments.
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['ci-cd', 'github-actions', 'devops', 'automation']
@@ -127,39 +137,49 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Módulo Terraform', en: 'Terraform Module' },
         description: { es: 'Genera un módulo de Terraform reutilizable con variables, outputs y good practices.', en: 'Generate a reusable Terraform module with variables, outputs, and best practices.' },
         prompt: {
-            es: `Actúa como un **Senior Cloud Infrastructure Engineer**.
+            es: `Actúa como un **Senior Cloud Infrastructure Engineer** especializado en IaC con Terraform.
 
-Crea un **módulo de Terraform** reutilizable para:
-- **Recurso:** {{RESOURCE}}
-- **Cloud Provider:** {{CLOUD}}
+Tu objetivo es generar un **módulo de Terraform** reutilizable para provisionar el recurso '{{RESOURCE}}' en {{CLOUD}}, con buenas prácticas de versionado, validación y documentación.
 
-REQUISITOS:
-1. Variables con descriptions, types, y defaults
-2. Outputs documentados
-3. Tags consistentes
-4. Lifecycle rules (prevent_destroy, create_before_destroy)
-5. Validaciones de variables
-6. README con ejemplos de uso
-7. Version pinning de providers
+**Contexto del módulo:**
+- **Recurso a provisionar:** {{RESOURCE}}
+- **Proveedor Cloud:** {{CLOUD}}
 
-FORMATO: main.tf, variables.tf, outputs.tf, README.md
+**PASOS Y REQUISITOS:**
+1. Declara variables con 'description', 'type', 'validation' y defaults sensatos.
+2. Define outputs documentados para consumo desde otros módulos.
+3. Aplica etiquetado (tags) consistente y configurable.
+4. Usa 'lifecycle' rules ('prevent_destroy', 'create_before_destroy') donde aplique.
+5. Fija la versión del proveedor y del terraform requerido.
+6. Incluye un README con ejemplo completo de uso.
+
+**FORMATO DE SALIDA:**
+- 'variables.tf', 'outputs.tf' y 'main.tf' completos.
+- 'versions.tf' con version pinning.
+- 'README.md' con ejemplo de invocación.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Cloud Infrastructure Engineer**.
+            en: `Act as a **Senior Cloud Infrastructure Engineer** specialized in Terraform IaC.
 
-Create a reusable **Terraform module** for:
-- **Resource:** {{RESOURCE}}
-- **Cloud Provider:** {{CLOUD}}
+Your goal is to generate a reusable **Terraform module** to provision the '{{RESOURCE}}' resource on {{CLOUD}}, following best practices for versioning, validation, and documentation.
 
-REQUIREMENTS:
-1. Variables with descriptions, types, and defaults
-2. Documented outputs
-3. Consistent tagging
-4. Lifecycle rules (prevent_destroy, create_before_destroy)
-5. Variable validations
-6. README with usage examples
-7. Provider version pinning
+**Module context:**
+- **Resource to provision:** {{RESOURCE}}
+- **Cloud provider:** {{CLOUD}}
 
-FORMAT: main.tf, variables.tf, outputs.tf, README.md
+**STEPS AND REQUIREMENTS:**
+1. Declare variables with 'description', 'type', 'validation', and sensible defaults.
+2. Define documented outputs for consumption by other modules.
+3. Apply consistent, configurable tagging.
+4. Use 'lifecycle' rules ('prevent_destroy', 'create_before_destroy') where applicable.
+5. Pin the provider version and required Terraform version.
+6. Include a README with a complete usage example.
+
+**OUTPUT FORMAT:**
+- Complete 'variables.tf', 'outputs.tf', and 'main.tf'.
+- 'versions.tf' with version pinning.
+- 'README.md' with an invocation example.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['terraform', 'iac', 'cloud', 'infrastructure']
@@ -172,48 +192,52 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Modelo de Amenazas (STRIDE)', en: 'Threat Model (STRIDE)' },
         description: { es: 'Genera un modelo de amenazas usando el framework STRIDE para una aplicación.', en: 'Generate a threat model using the STRIDE framework for an application.' },
         prompt: {
-            es: `Actúa como un **Senior Security Architect**.
+            es: `Actúa como un **Senior Security Architect** con experiencia en análisis de amenazas.
 
-Realiza un **modelo de amenazas STRIDE** para:
+Realiza un **modelo de amenazas STRIDE** exhaustivo para {{APP_NAME}}, una {{APP_TYPE}} con arquitectura {{ARCHITECTURE}}. Tu análisis debe traducirse en mitigaciones accionables y priorizadas.
+
+**Contexto del sistema:**
 - **Aplicación:** {{APP_NAME}}
 - **Tipo:** {{APP_TYPE}}
 - **Arquitectura:** {{ARCHITECTURE}}
 
-ANÁLISIS STRIDE:
-1. **Spoofing**: ¿Quién puede impersonar a quién?
-2. **Tampering**: ¿Dónde se pueden modificar datos?
-3. **Repudiation**: ¿Qué acciones no se pueden auditar?
-4. **Information Disclosure**: ¿Qué datos están expuestos?
-5. **Denial of Service**: ¿Qué vectores de DoS existen?
-6. **Elevation of Privilege**: ¿Cómo se puede escalar privilegios?
+**ANÁLISIS STRIDE (por cada categoría):**
+1. **Spoofing**: identifica vectores de suplantación y sus controles.
+2. **Tampering**: mapea dónde puede alterarse la información.
+3. **Repudiation**: detecta acciones sin auditoría ni no-repudio.
+4. **Information Disclosure**: enumera datos expuestos y superficies de fuga.
+5. **Denial of Service**: analiza vectores de indisponibilidad y abuso de recursos.
+6. **Elevation of Privilege**: traza caminos de escalada de privilegios.
 
-ENTREGABLE:
-- Diagrama de flujo de datos (descripción textual)
-- Tabla de amenazas con: componente, amenaza, mitigación, prioridad
-- Recomendaciones de seguridad priorizadas
-- Checklist de hardening
+**FORMATO DE SALIDA:**
+- Descripción textual del flujo de datos (actores, procesos, almacenes).
+- Tabla de amenazas: componente, amenaza, impacto, probabilidad, mitigación y prioridad.
+- Lista priorizada de recomendaciones de seguridad.
+- Checklist de hardening específico para {{APP_TYPE}}.
 
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Security Architect**.
+            en: `Act as a **Senior Security Architect** experienced in threat analysis.
 
-Perform a **STRIDE threat model** for:
+Perform an exhaustive **STRIDE threat model** for {{APP_NAME}}, a {{APP_TYPE}} with a {{ARCHITECTURE}} architecture. Your analysis must translate into actionable, prioritized mitigations.
+
+**System context:**
 - **Application:** {{APP_NAME}}
 - **Type:** {{APP_TYPE}}
 - **Architecture:** {{ARCHITECTURE}}
 
-STRIDE ANALYSIS:
-1. **Spoofing**: Who can impersonate whom?
-2. **Tampering**: Where can data be modified?
-3. **Repudiation**: What actions cannot be audited?
-4. **Information Disclosure**: What data is exposed?
-5. **Denial of Service**: What DoS vectors exist?
-6. **Elevation of Privilege**: How can privileges be escalated?
+**STRIDE ANALYSIS (for each category):**
+1. **Spoofing**: identify impersonation vectors and their controls.
+2. **Tampering**: map where information can be altered.
+3. **Repudiation**: detect actions without auditability or non-repudiation.
+4. **Information Disclosure**: enumerate exposed data and leak surfaces.
+5. **Denial of Service**: analyze unavailability vectors and resource abuse.
+6. **Elevation of Privilege**: trace privilege escalation paths.
 
-DELIVERABLE:
-- Data flow diagram (textual description)
-- Threat table with: component, threat, mitigation, priority
-- Prioritized security recommendations
-- Hardening checklist
+**OUTPUT FORMAT:**
+- Textual data flow description (actors, processes, data stores).
+- Threat table: component, threat, impact, likelihood, mitigation, and priority.
+- Prioritized list of security recommendations.
+- Hardening checklist specific to {{APP_TYPE}}.
 
 LANGUAGE: {{LANG_OUTPUT}}`
         },
@@ -226,35 +250,51 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Security Checklist por Lenguaje', en: 'Language-Specific Security Checklist' },
         description: { es: 'Genera un checklist de seguridad específico para un lenguaje de programación.', en: 'Generate a language-specific security checklist.' },
         prompt: {
-            es: `Actúa como un **Application Security Engineer**.
+            es: `Actúa como un **Application Security Engineer** senior.
 
-Crea un **Security Checklist** exhaustivo para aplicaciones en **{{LANG}}**.
+Genera un **Security Checklist** accionable y específico para aplicaciones **{{LANG}}** de tipo {{APP_TYPE}}. Cada ítem debe permitir auditar el código de forma concreta.
 
-CATEGORÍAS:
-1. **Input Validation**: Sanitización, validación de tipos, SQL injection, XSS
-2. **Authentication & Authorization**: Session management, JWT, OAuth, RBAC
-3. **Data Protection**: Encryption at rest/in transit, secrets management
-4. **Dependencies**: Vulnerability scanning, supply chain security
-5. **Error Handling**: Information leakage, stack traces, logging
-6. **Configuration**: Environment variables, hardcoded secrets, defaults
-7. **API Security**: Rate limiting, CORS, CSRF, input size limits
+**Contexto:**
+- **Lenguaje:** {{LANG}}
+- **Tipo de aplicación:** {{APP_TYPE}}
 
-FORMATO: Checklist con items marcables, nivel de criticidad (Crítico/Alto/Medio), y ejemplos de código vulnerable vs seguro.
+**CATEGORÍAS A CUBRIR:**
+1. **Input Validation**: sanitización, tipos, SQL injection, XSS.
+2. **Authentication & Authorization**: sesiones, JWT/OAuth, RBAC.
+3. **Data Protection**: cifrado en reposo/tránsito, secretos.
+4. **Dependencies**: escaneo de vulnerabilidades y supply chain.
+5. **Error Handling**: fuga de información, stack traces, logging.
+6. **Configuration**: variables de entorno, secretos hardcodeados, defaults inseguros.
+7. **API Security**: rate limiting, CORS, CSRF, límites de tamaño.
+
+**FORMATO DE SALIDA:**
+- Checklist con ítems marcables.
+- Nivel de criticidad (Crítico/Alto/Medio) por ítem.
+- Ejemplo **vulnerable vs seguro** en {{LANG}} para cada punto clave.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Application Security Engineer**.
+            en: `Act as a **Senior Application Security Engineer**.
 
-Create a comprehensive **Security Checklist** for **{{LANG}}** applications.
+Generate an actionable, specific **Security Checklist** for **{{LANG}}** applications of type {{APP_TYPE}}. Each item must allow concrete code auditing.
 
-CATEGORIES:
-1. **Input Validation**: Sanitization, type validation, SQL injection, XSS
-2. **Authentication & Authorization**: Session management, JWT, OAuth, RBAC
-3. **Data Protection**: Encryption at rest/in transit, secrets management
-4. **Dependencies**: Vulnerability scanning, supply chain security
-5. **Error Handling**: Information leakage, stack traces, logging
-6. **Configuration**: Environment variables, hardcoded secrets, defaults
-7. **API Security**: Rate limiting, CORS, CSRF, input size limits
+**Context:**
+- **Language:** {{LANG}}
+- **Application type:** {{APP_TYPE}}
 
-FORMAT: Checklist with checkable items, severity level (Critical/High/Medium), and vulnerable vs secure code examples.
+**CATEGORIES TO COVER:**
+1. **Input Validation**: sanitization, types, SQL injection, XSS.
+2. **Authentication & Authorization**: sessions, JWT/OAuth, RBAC.
+3. **Data Protection**: encryption at rest/in transit, secrets.
+4. **Dependencies**: vulnerability scanning and supply chain.
+5. **Error Handling**: information leakage, stack traces, logging.
+6. **Configuration**: environment variables, hardcoded secrets, unsafe defaults.
+7. **API Security**: rate limiting, CORS, CSRF, size limits.
+
+**OUTPUT FORMAT:**
+- Checklist with checkable items.
+- Severity level (Critical/High/Medium) per item.
+- **Vulnerable vs secure** example in {{LANG}} for each key point.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['security', 'checklist', 'best-practices', 'code-review']
@@ -267,54 +307,52 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Artículo Técnico para Blog', en: 'Technical Blog Post' },
         description: { es: 'Genera un artículo técnico completo con código, explicaciones y estructura profesional.', en: 'Generate a complete technical article with code, explanations, and professional structure.' },
         prompt: {
-            es: `Actúa como un **Technical Writer Senior** con experiencia en desarrollo de software.
+            es: `Actúa como un **Technical Writer Senior** con experiencia en desarrollo de software y SEO técnico.
 
-Escribe un **artículo técnico** sobre:
+Escribe un **artículo técnico** completo sobre **{{TOPIC}}**, orientado a la keyword **{{HEADLINE_KEYWORD}}** y dirigido a una audiencia de nivel **{{AUDIENCE_LEVEL}}**.
+
+**Contexto del artículo:**
 - **Tema:** {{TOPIC}}
-- **Audiencia:** {{AUDIENCE}}
-- **Nivel:** {{LEVEL}}
+- **Keyword principal del titular:** {{HEADLINE_KEYWORD}}
+- **Nivel de la audiencia:** {{AUDIENCE_LEVEL}}
 
-ESTRUCTURA:
-1. **Título atractivo** (SEO-optimized)
-2. **Introducción** (hook + problema que resuelve)
-3. **Contexto** (por qué importa, antecedentes)
-4. **Desarrollo técnico** con ejemplos de código
-5. **Comparativas** (pros/contras, alternativas)
-6. **Best Practices** (lecciones aprendidas)
-7. **Conclusión** (resumen + siguiente paso)
-8. **TL;DR** al inicio
+**PASOS:**
+1. Propón 3 títulos SEO-optimizados usando la keyword.
+2. Redacta un TL;DR al inicio y una introducción con hook y problema.
+3. Desarrolla el contenido técnico con ejemplos de código correctos y explicados.
+4. Incluye una sección de mejores prácticas y errores comunes.
+5. Cierra con conclusión, siguiente paso y llamada a la acción.
+6. Aporta meta description, keywords y slug sugerido (150/160 chars).
 
-REQUISITOS:
-- Código con syntax highlighting
-- Diagramas descritos en texto (Mermaid si aplica)
-- Links a documentación oficial
-- SEO: meta description, keywords, slug sugerido
-- Lectura estimada en minutos
+**FORMATO DE SALIDA:**
+- Artículo completo en Markdown con headings jerárquicos.
+- Código con lenguaje especificado.
+- Meta y slug al final del documento.
+- Tiempo estimado de lectura.
 
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Technical Writer** with software development experience.
+            en: `Act as a **Senior Technical Writer** with software development and technical SEO experience.
 
-Write a **technical article** about:
+Write a complete **technical article** about **{{TOPIC}}**, targeting the keyword **{{HEADLINE_KEYWORD}}** and aimed at a **{{AUDIENCE_LEVEL}}** audience.
+
+**Article context:**
 - **Topic:** {{TOPIC}}
-- **Audience:** {{AUDIENCE}}
-- **Level:** {{LEVEL}}
+- **Main headline keyword:** {{HEADLINE_KEYWORD}}
+- **Audience level:** {{AUDIENCE_LEVEL}}
 
-STRUCTURE:
-1. **Catchy title** (SEO-optimized)
-2. **Introduction** (hook + problem it solves)
-3. **Context** (why it matters, background)
-4. **Technical development** with code examples
-5. **Comparisons** (pros/cons, alternatives)
-6. **Best Practices** (lessons learned)
-7. **Conclusion** (summary + next step)
-8. **TL;DR** at the beginning
+**STEPS:**
+1. Propose 3 SEO-optimized titles using the keyword.
+2. Draft a TL;DR at the top and an introduction with a hook and problem.
+3. Develop the technical content with correct, explained code examples.
+4. Include a best practices and common mistakes section.
+5. Close with a conclusion, next step, and call to action.
+6. Provide meta description, keywords, and suggested slug.
 
-REQUIREMENTS:
-- Code with syntax highlighting
-- Diagrams described in text (Mermaid if applicable)
-- Links to official documentation
-- SEO: meta description, keywords, suggested slug
-- Estimated reading time in minutes
+**OUTPUT FORMAT:**
+- Complete article in Markdown with hierarchical headings.
+- Code with specified language.
+- Meta and slug at the end of the document.
+- Estimated reading time.
 
 LANGUAGE: {{LANG_OUTPUT}}`
         },
@@ -327,53 +365,49 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Documentación de API', en: 'API Documentation' },
         description: { es: 'Genera documentación completa de API con endpoints, ejemplos y guías de uso.', en: 'Generate complete API documentation with endpoints, examples, and usage guides.' },
         prompt: {
-            es: `Actúa como un **Technical Writer especializado en APIs**.
+            es: `Actúa como un **Technical Writer** especializado en documentación de APIs.
 
-Crea la **documentación** para una API con:
+Genera la **documentación completa** de {{API_NAME}}, una API del tipo **{{API_TYPE}}** servida desde **{{BASE_URL}}**. Debe ser útil para desarrolladores nuevos y para integradores experimentados.
+
+**Contexto de la API:**
 - **Nombre:** {{API_NAME}}
-- **Tipo:** REST / GraphQL / gRPC
+- **Tipo:** {{API_TYPE}}
 - **Base URL:** {{BASE_URL}}
 
-SECCIONES:
-1. **Overview**: Qué hace la API, casos de uso
-2. **Authentication**: Cómo autenticarse (API keys, OAuth, JWT)
-3. **Endpoints**: Para cada endpoint:
-   - Método y path
-   - Descripción
-   - Request headers
-   - Request body (schema)
-   - Response (200, 400, 401, 404, 500)
-   - Ejemplos curl
-4. **Rate Limiting**: Límites y headers
-5. **Error Codes**: Tabla completa de errores
-6. **SDK/Client Examples**: En {{LANG}}
-7. **Changelog**: Versiones recientes
+**SECCIONES OBLIGATORIAS:**
+1. **Overview**: propósito, casos de uso y términos clave.
+2. **Authentication**: método (API keys, OAuth, JWT) y pasos para obtener credenciales.
+3. **Endpoints**: para cada entrega, método, path, headers, body (schema), respuestas (200/400/401/404/500) y ejemplo 'curl'.
+4. **Rate Limiting**: límites y headers asociados.
+5. **Error Codes**: tabla completa de errores con descripción y resolución.
+6. **Client Examples**: snippet de uso en un lenguaje común.
 
-FORMATO: Markdown con OpenAPI spec si aplica.
+**FORMATO DE SALIDA:**
+- Markdown estructurado con la OpenAPI/Swagger spec embebida si aplica.
+- Ejemplos 'curl' reales construidos sobre **{{BASE_URL}}**.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **API-focused Technical Writer**.
+            en: `Act as a **Technical Writer** specialized in API documentation.
 
-Create **documentation** for an API with:
+Generate the **complete documentation** for {{API_NAME}}, a **{{API_TYPE}}** API served from **{{BASE_URL}}**. It must be useful for new developers and experienced integrators alike.
+
+**API context:**
 - **Name:** {{API_NAME}}
-- **Type:** REST / GraphQL / gRPC
+- **Type:** {{API_TYPE}}
 - **Base URL:** {{BASE_URL}}
 
-SECTIONS:
-1. **Overview**: What the API does, use cases
-2. **Authentication**: How to authenticate (API keys, OAuth, JWT)
-3. **Endpoints**: For each endpoint:
-   - Method and path
-   - Description
-   - Request headers
-   - Request body (schema)
-   - Response (200, 400, 401, 404, 500)
-   - curl examples
-4. **Rate Limiting**: Limits and headers
-5. **Error Codes**: Complete error table
-6. **SDK/Client Examples**: In {{LANG}}
-7. **Changelog**: Recent versions
+**REQUIRED SECTIONS:**
+1. **Overview**: purpose, use cases, and key terms.
+2. **Authentication**: method (API keys, OAuth, JWT) and steps to obtain credentials.
+3. **Endpoints**: per endpoint, method, path, headers, body (schema), responses (200/400/401/404/500), and a 'curl' example.
+4. **Rate Limiting**: limits and associated headers.
+5. **Error Codes**: complete error table with description and resolution.
+6. **Client Examples**: usage snippet in a common language.
 
-FORMAT: Markdown with OpenAPI spec if applicable.
+**OUTPUT FORMAT:**
+- Structured Markdown with the OpenAPI/Swagger spec embedded if applicable.
+- Real 'curl' examples built against **{{BASE_URL}}**.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['api', 'documentation', 'rest', 'developer-experience']
@@ -385,39 +419,51 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Release Notes Profesionales', en: 'Professional Release Notes' },
         description: { es: 'Genera release notes estructuradas con changelog, breaking changes y migración.', en: 'Generate structured release notes with changelog, breaking changes, and migration guide.' },
         prompt: {
-            es: `Actúa como un **Product Manager técnico**.
+            es: `Actúa como un **Technical Product Manager** con foco en comunicación de producto.
 
-Escribe las **Release Notes** para la versión {{VERSION}} de {{PRODUCT}}.
+Redacta las **Release Notes** de la versión **{{VERSION}}** de **{{PRODUCT}}**, orientadas a que usuarios técnicos y stakeholders entiendan el impacto del lanzamiento de un vistazo.
 
-ESTRUCTURA:
-1. **Header**: Versión, fecha, highlight del release
-2. **Breaking Changes**: Con guía de migración paso a paso
-3. **New Features**: Con screenshots descritos y beneficios
-4. **Improvements**: Optimizaciones y mejoras UX
-5. **Bug Fixes**: Con links a issues si aplica
-6. **Deprecations**: Qué se elimina y cuándo
-7. **Known Issues**: Problemas conocidos y workarounds
-8. **Upgrade Guide**: Pasos para actualizar
+**Contexto:**
+- **Versión:** {{VERSION}}
+- **Producto:** {{PRODUCT}}
 
-TONO: Profesional pero accesible. Celebratorio pero honesto.
-FORMATO: Markdown con emojis para categorías.
+**ESTRUCTURA:**
+1. **Header**: versión, fecha estimada y highlight del release.
+2. **Breaking Changes**: lista con guía de migración paso a paso.
+3. **New Features**: beneficios y casos de uso de cada feature.
+4. **Improvements**: optimizaciones y cambios de UX.
+5. **Bug Fixes**: agrupados por área de impacto.
+6. **Deprecations**: qué se retira y cuándo, con alternativa.
+7. **Known Issues**: problemas conocidos con workarounds.
+8. **Upgrade Guide**: pasos concretos para actualizar a {{VERSION}}.
+
+**FORMATO DE SALIDA:**
+- Markdown con emojis por categoría y secciones claramente numeradas.
+- Tono profesional y accesible, celebratorio pero honesto.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Technical Product Manager**.
+            en: `Act as a **Technical Product Manager** focused on product communication.
 
-Write **Release Notes** for version {{VERSION}} of {{PRODUCT}}.
+Draft the **Release Notes** for version **{{VERSION}}** of **{{PRODUCT}}**, aimed at letting technical users and stakeholders grasp the launch impact at a glance.
 
-STRUCTURE:
-1. **Header**: Version, date, release highlight
-2. **Breaking Changes**: With step-by-step migration guide
-3. **New Features**: With described screenshots and benefits
-4. **Improvements**: Optimizations and UX enhancements
-5. **Bug Fixes**: With issue links if applicable
-6. **Deprecations**: What's being removed and when
-7. **Known Issues**: Known problems and workarounds
-8. **Upgrade Guide**: Steps to update
+**Context:**
+- **Version:** {{VERSION}}
+- **Product:** {{PRODUCT}}
 
-TONE: Professional but accessible. Celebratory but honest.
-FORMAT: Markdown with emojis for categories.
+**STRUCTURE:**
+1. **Header**: version, estimated date, and release highlight.
+2. **Breaking Changes**: list with step-by-step migration guide.
+3. **New Features**: benefits and use cases of each feature.
+4. **Improvements**: optimizations and UX changes.
+5. **Bug Fixes**: grouped by impact area.
+6. **Deprecations**: what is being removed and when, with alternatives.
+7. **Known Issues**: known problems with workarounds.
+8. **Upgrade Guide**: concrete steps to upgrade to {{VERSION}}.
+
+**OUTPUT FORMAT:**
+- Markdown with emojis per category and clearly numbered sections.
+- Professional yet accessible tone, celebratory but honest.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['release-notes', 'product', 'changelog', 'communication']
@@ -430,51 +476,55 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Product Requirements Document (PRD)', en: 'Product Requirements Document (PRD)' },
         description: { es: 'Genera un PRD completo con problema, solución, métricas y roadmap.', en: 'Generate a complete PRD with problem, solution, metrics, and roadmap.' },
         prompt: {
-            es: `Actúa como un **Senior Product Manager**.
+            es: `Actúa como un **Senior Product Manager** con experiencia en productos digitales.
 
-Crea un **Product Requirements Document (PRD)** para:
+Redacta un **Product Requirements Document (PRD)** completo para **{{PRODUCT_NAME}}**, que resuelve **{{PROBLEM}}** para **{{TARGET_USERS}}**. El documento debe servir para alinear a producto, ingeniería y negocio.
+
+**Contexto:**
 - **Producto:** {{PRODUCT_NAME}}
 - **Problema:** {{PROBLEM}}
-- **Audiencia:** {{TARGET_USERS}}
+- **Usuarios objetivo:** {{TARGET_USERS}}
 
-SECCIONES:
-1. **Problem Statement**: Qué problema resolvemos y por qué ahora
-2. **Target Users**: Personas, jobs-to-be-done
-3. **Success Metrics**: North Star metric, KPIs, OKRs
-4. **Solution Overview**: Propuesta de valor, user stories principales
-5. **Requirements**:
-   - Funcionales (must-have, should-have, nice-to-have)
-   - No funcionales (performance, security, accessibility)
-6. **User Flows**: Descripción paso a paso de los flujos clave
-7. **Technical Considerations**: Arquitectura, dependencias, riesgos
-8. **Go-to-Market**: Lanzamiento, comunicación, rollout plan
-9. **Timeline**: Fases estimadas con milestones
-10. **Open Questions**: Decisiones pendientes
+**SECCIONES OBLIGATORIAS:**
+1. **Problem Statement**: problema, contexto y por qué ahora.
+2. **Target Users**: perfiles, jobs-to-be-done y escenarios.
+3. **Success Metrics**: North Star, KPIs y OKRs relacionados.
+4. **Solution Overview**: propuesta de valor y user stories principales.
+5. **Requirements**: funcionales (Must/Should/Could) y no funcionales.
+6. **User Flows**: paso a paso de los flujos críticos.
+7. **Technical Considerations**: arquitectura, dependencias y riesgos.
+8. **Go-to-Market**: lanzamiento y rollout.
+9. **Timeline**: fases con milestones.
+10. **Open Questions**: decisiones pendientes.
 
-FORMATO: Documento estructurado en Markdown.
+**FORMATO DE SALIDA:**
+- Documento Markdown estructurado con las 10 secciones completas.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Product Manager**.
+            en: `Act as a **Senior Product Manager** experienced in digital products.
 
-Create a **Product Requirements Document (PRD)** for:
+Draft a complete **Product Requirements Document (PRD)** for **{{PRODUCT_NAME}}**, which solves **{{PROBLEM}}** for **{{TARGET_USERS}}**. The document must align product, engineering, and business.
+
+**Context:**
 - **Product:** {{PRODUCT_NAME}}
 - **Problem:** {{PROBLEM}}
-- **Target Users:** {{TARGET_USERS}}
+- **Target users:** {{TARGET_USERS}}
 
-SECTIONS:
-1. **Problem Statement**: What problem we solve and why now
-2. **Target Users**: Personas, jobs-to-be-done
-3. **Success Metrics**: North Star metric, KPIs, OKRs
-4. **Solution Overview**: Value proposition, main user stories
-5. **Requirements**:
-   - Functional (must-have, should-have, nice-to-have)
-   - Non-functional (performance, security, accessibility)
-6. **User Flows**: Step-by-step description of key flows
-7. **Technical Considerations**: Architecture, dependencies, risks
-8. **Go-to-Market**: Launch, communication, rollout plan
-9. **Timeline**: Estimated phases with milestones
-10. **Open Questions**: Pending decisions
+**REQUIRED SECTIONS:**
+1. **Problem Statement**: problem, context, and why now.
+2. **Target Users**: profiles, jobs-to-be-done, and scenarios.
+3. **Success Metrics**: North Star, KPIs, and related OKRs.
+4. **Solution Overview**: value proposition and main user stories.
+5. **Requirements**: functional (Must/Should/Could) and non-functional.
+6. **User Flows**: step-by-step critical flows.
+7. **Technical Considerations**: architecture, dependencies, and risks.
+8. **Go-to-Market**: launch and rollout.
+9. **Timeline**: phases with milestones.
+10. **Open Questions**: pending decisions.
 
-FORMAT: Structured Markdown document.
+**OUTPUT FORMAT:**
+- Structured Markdown document with all 10 sections complete.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['prd', 'product', 'requirements', 'planning']
@@ -486,45 +536,49 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Architecture Decision Record (ADR)', en: 'Architecture Decision Record (ADR)' },
         description: { es: 'Genera un ADR con contexto, decisiones, alternativas y consecuencias.', en: 'Generate an ADR with context, decisions, alternatives, and consequences.' },
         prompt: {
-            es: `Actúa como un **Principal Software Architect**.
+            es: `Actúa como un **Principal Software Architect** orientado a decisiones técnicas trazables.
 
-Crea un **Architecture Decision Record (ADR)** para:
+Redacta un **Architecture Decision Record (ADR)** que documente la decisión **{{DECISION}}**, dejando el contexto **{{CONTEXT}}** y las consecuencias claramente registrados para futuras revisiones.
+
+**Contexto de la decisión:**
 - **Decisión:** {{DECISION}}
 - **Contexto:** {{CONTEXT}}
 
-FORMATO ADR (Nygard style):
-1. **Title**: Decision title
-2. **Status**: Proposed | Accepted | Deprecated | Superseded
-3. **Context**: Situación actual, fuerzas que influyen, restricciones
-4. **Decision**: Qué decidimos y por qué
-5. **Alternatives Consideradas**:
-   - Opción A: pros, contras, por qué se rechazó
-   - Opción B: pros, contras, por qué se rechazó
-6. **Consequences**: Impacto positivo y negativo de la decisión
-7. **Compliance**: Cómo verificar que se cumple la decisión
-8. **Notes**: Links, referencias, personas involucradas
+**ESTRUCTURA (formato Nygard):**
+1. **Title**: título descriptivo de la decisión.
+2. **Status**: Proposed | Accepted | Deprecated | Superseded (justifica).
+3. **Context**: situación actual, fuerzas y restricciones relevantes.
+4. **Decision**: qué se decide y por qué se selecciona esta opción.
+5. **Alternatives Considered**: para cada alternativa, pros, contras y motivo de rechazo.
+6. **Consequences**: impacto positivo y negativo, incluidos trade-offs.
+7. **Compliance**: criterios y forma de verificar que se respeta la decisión.
+8. **Notes**: referencias, links y personas implicadas.
 
-TONO: Técnico, objetivo, sin ambigüedades.
+**FORMATO DE SALIDA:**
+- ADR completo en Markdown, tono técnico, objetivo y sin ambigüedades.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Principal Software Architect**.
+            en: `Act as a **Principal Software Architect** focused on traceable technical decisions.
 
-Create an **Architecture Decision Record (ADR)** for:
+Draft an **Architecture Decision Record (ADR)** documenting the decision **{{DECISION}}**, clearly recording the context **{{CONTEXT}}** and consequences for future reviews.
+
+**Decision context:**
 - **Decision:** {{DECISION}}
 - **Context:** {{CONTEXT}}
 
-ADR FORMAT (Nygard style):
-1. **Title**: Decision title
-2. **Status**: Proposed | Accepted | Deprecated | Superseded
-3. **Context**: Current situation, influencing forces, constraints
-4. **Decision**: What we decided and why
-5. **Alternatives Considered**:
-   - Option A: pros, cons, why rejected
-   - Option B: pros, cons, why rejected
-6. **Consequences**: Positive and negative impact of the decision
-7. **Compliance**: How to verify the decision is followed
-8. **Notes**: Links, references, people involved
+**STRUCTURE (Nygard format):**
+1. **Title**: descriptive decision title.
+2. **Status**: Proposed | Accepted | Deprecated | Superseded (justify it).
+3. **Context**: current situation, relevant forces, and constraints.
+4. **Decision**: what is decided and why this option was selected.
+5. **Alternatives Considered**: per alternative, pros, cons, and rejection reason.
+6. **Consequences**: positive and negative impact, including trade-offs.
+7. **Compliance**: criteria and how to verify the decision is respected.
+8. **Notes**: references, links, and people involved.
 
-TONE: Technical, objective, unambiguous.
+**OUTPUT FORMAT:**
+- Complete ADR in Markdown, technical, objective, and unambiguous.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['adr', 'architecture', 'decisions', 'documentation']
@@ -536,55 +590,57 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Especificación Técnica', en: 'Technical Specification' },
         description: { es: 'Genera una especificación técnica detallada para un feature o sistema.', en: 'Generate a detailed technical specification for a feature or system.' },
         prompt: {
-            es: `Actúa como un **Staff Engineer**.
+            es: `Actúa como un **Staff Engineer** responsable de diseños técnicos claros y ejecutables.
 
-Crea una **Especificación Técnica** para:
+Escribe una **Especificación Técnica** para **{{FEATURE}}**, con contexto **{{CONTEXT}}** y sobre el stack **{{TECH_STACK}}**. El documento debe permitir a cualquier ingeniero implementar sin ambigüedades.
+
+**Contexto:**
 - **Feature/Sistema:** {{FEATURE}}
 - **Contexto:** {{CONTEXT}}
+- **Stack tecnológico:** {{TECH_STACK}}
 
-SECCIONES:
-1. **Overview**: Qué se va a construir y por qué
-2. **Goals & Non-Goals**: Qué está dentro y fuera del scope
-3. **System Design**:
-   - Diagrama de arquitectura (descripción textual)
-   - Componentes y responsabilidades
-   - Flujos de datos
-4. **API Design**: Endpoints, schemas, contratos
-5. **Data Model**: Tablas, relaciones, índices
-6. **State Management**: Cómo se maneja el estado
-7. **Error Handling**: Estrategia de errores y retries
-8. **Performance**: Benchmarks esperados, límites
-9. **Security**: Auth, authorization, data protection
-10. **Testing Strategy**: Unit, integration, E2E, load
-11. **Rollout Plan**: Feature flags, canary, monitoring
-12. **Migration**: Si aplica, plan de migración de datos
+**SECCIONES OBLIGATORIAS:**
+1. **Overview**: qué se construye y por qué.
+2. **Goals & Non-Goals**: alcance y fuera de alcance.
+3. **System Design**: arquitectura (descripción textual), componentes y flujos de datos.
+4. **API Design**: endpoints, schemas y contratos.
+5. **Data Model**: entidades, relaciones e índices.
+6. **Error Handling**: estrategia de errores y retries.
+7. **Performance**: benchmarks esperados, límites y latencia objetivo.
+8. **Security**: autenticación, autorización y protección de datos.
+9. **Testing Strategy**: unit, integration, E2E y load.
+10. **Rollout Plan**: feature flags, canary y monitorización.
+11. **Migration**: plan de migración si aplica.
 
-FORMATO: Documento técnico en Markdown.
+**FORMATO DE SALIDA:**
+- Documento Markdown con todas las secciones numeradas y consistentes con {{TECH_STACK}}.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Staff Engineer**.
+            en: `Act as a **Staff Engineer** responsible for clear, executable technical designs.
 
-Create a **Technical Specification** for:
+Write a **Technical Specification** for **{{FEATURE}}**, with context **{{CONTEXT}}**, on the **{{TECH_STACK}}** stack. The document must let any engineer implement without ambiguity.
+
+**Context:**
 - **Feature/System:** {{FEATURE}}
 - **Context:** {{CONTEXT}}
+- **Tech stack:** {{TECH_STACK}}
 
-SECTIONS:
-1. **Overview**: What will be built and why
-2. **Goals & Non-Goals**: What's in and out of scope
-3. **System Design**:
-   - Architecture diagram (textual description)
-   - Components and responsibilities
-   - Data flows
-4. **API Design**: Endpoints, schemas, contracts
-5. **Data Model**: Tables, relationships, indexes
-6. **State Management**: How state is handled
-7. **Error Handling**: Error strategy and retries
-8. **Performance**: Expected benchmarks, limits
-9. **Security**: Auth, authorization, data protection
-10. **Testing Strategy**: Unit, integration, E2E, load
-11. **Rollout Plan**: Feature flags, canary, monitoring
-12. **Migration**: If applicable, data migration plan
+**REQUIRED SECTIONS:**
+1. **Overview**: what will be built and why.
+2. **Goals & Non-Goals**: in and out of scope.
+3. **System Design**: architecture (textual description), components, and data flows.
+4. **API Design**: endpoints, schemas, and contracts.
+5. **Data Model**: entities, relationships, and indexes.
+6. **Error Handling**: error and retry strategy.
+7. **Performance**: expected benchmarks, limits, and target latency.
+8. **Security**: authentication, authorization, and data protection.
+9. **Testing Strategy**: unit, integration, E2E, and load.
+10. **Rollout Plan**: feature flags, canary, and monitoring.
+11. **Migration**: migration plan if applicable.
 
-FORMAT: Technical document in Markdown.
+**OUTPUT FORMAT:**
+- Markdown document with all sections numbered and consistent with {{TECH_STACK}}.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['spec', 'technical', 'design', 'engineering']
@@ -597,106 +653,52 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Deployment Kubernetes', en: 'Kubernetes Deployment' },
         description: { es: 'Genera manifests de K8s con Deployment, Service, Ingress, HPA y ConfigMap.', en: 'Generate K8s manifests with Deployment, Service, Ingress, HPA, and ConfigMap.' },
         prompt: {
-            es: `Actúa como un **Senior Kubernetes Engineer**.
+            es: `Actúa como un **Senior Kubernetes Engineer** especializado en workloads seguros.
 
-Crea los manifests de Kubernetes para:
+Genera los manifests de Kubernetes para desplegar **{{APP_NAME}}** ({{APP_TYPE}}) expuesta en el puerto **{{CONTAINER_PORT}}**, con alta disponibilidad y buenas prácticas de seguridad.
+
+**Contexto:**
 - **Aplicación:** {{APP_NAME}}
 - **Tipo:** {{APP_TYPE}}
-- **Puerto:** {{PORT}}
+- **Puerto del contenedor:** {{CONTAINER_PORT}}
 
-MANIFESTS REQUERIDOS:
-1. **Deployment** con replicas, resources (requests/limits), probes (liveness, readiness, startup), securityContext (non-root)
-2. **Service** (ClusterIP o LoadBalancer)
-3. **Ingress** con TLS y annotations
-4. **HorizontalPodAutoscaler** con métricas CPU/memory
-5. **ConfigMap** para configuración
-6. **Secret** template (con placeholders)
+**MANIFESTS Y REQUISITOS:**
+1. **Deployment**: replicas, requests/limits, liveness/readiness/startup probes y 'securityContext' non-root.
+2. **Service** (ClusterIP o LoadBalancer) con targetPort {{CONTAINER_PORT}}.
+3. **Ingress** con TLS y annotations básicas.
+4. **HorizontalPodAutoscaler** basado en CPU/memoria.
+5. **ConfigMap** y plantilla de **Secret** (con placeholders).
+6. Labels estándar 'app.kubernetes.io/*' en todos los objetos.
+7. **PodDisruptionBudget** y comentarios explicativos.
 
-REQUISITOS:
-- Usa apiVersion: apps/v1
-- Labels consistentes (app.kubernetes.io/*)
-- PodDisruptionBudget
-- Resource quotas
-- Comentarios explicativos
+**FORMATO DE SALIDA:**
+- YAML único separado por '---' con todos los manifests y comentarios.
 
-FORMATO: YAML separado por --- con comentarios.
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Kubernetes Engineer**.
+            en: `Act as a **Senior Kubernetes Engineer** specialized in secure workloads.
 
-Create Kubernetes manifests for:
+Generate the Kubernetes manifests to deploy **{{APP_NAME}}** (a {{APP_TYPE}}) exposed on port **{{CONTAINER_PORT}}**, with high availability and security best practices.
+
+**Context:**
 - **Application:** {{APP_NAME}}
 - **Type:** {{APP_TYPE}}
-- **Port:** {{PORT}}
+- **Container port:** {{CONTAINER_PORT}}
 
-REQUIRED MANIFESTS:
-1. **Deployment** with replicas, resources (requests/limits), probes (liveness, readiness, startup), securityContext (non-root)
-2. **Service** (ClusterIP or LoadBalancer)
-3. **Ingress** with TLS and annotations
-4. **HorizontalPodAutoscaler** with CPU/memory metrics
-5. **ConfigMap** for configuration
-6. **Secret** template (with placeholders)
+**MANIFESTS AND REQUIREMENTS:**
+1. **Deployment**: replicas, requests/limits, liveness/readiness/startup probes, and non-root 'securityContext'.
+2. **Service** (ClusterIP or LoadBalancer) with targetPort {{CONTAINER_PORT}}.
+3. **Ingress** with TLS and basic annotations.
+4. **HorizontalPodAutoscaler** based on CPU/memory.
+5. **ConfigMap** and a **Secret** template (with placeholders).
+6. Standard 'app.kubernetes.io/*' labels on all objects.
+7. **PodDisruptionBudget** and explanatory comments.
 
-REQUIREMENTS:
-- Use apiVersion: apps/v1
-- Consistent labels (app.kubernetes.io/*)
-- PodDisruptionBudget
-- Resource quotas
-- Explanatory comments
+**OUTPUT FORMAT:**
+- Single YAML separated by '---' with all manifests and comments.
 
-FORMAT: YAML separated by --- with comments.
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['kubernetes', 'k8s', 'devops', 'cloud', 'manifests']
-    },
-    {
-        id: 'nginx_config',
-        category: 'devops',
-        icon: '🌐',
-        title: { es: 'Configuración Nginx Production', en: 'Production Nginx Configuration' },
-        description: { es: 'Genera una configuración de Nginx optimizada para producción con SSL, caching y seguridad.', en: 'Generate a production-optimized Nginx config with SSL, caching, and security.' },
-        prompt: {
-            es: `Actúa como un **Senior SysAdmin & Web Performance Engineer**.
-
-Crea una configuración de **Nginx** para producción:
-- **Dominio:** {{DOMAIN}}
-- **Backend:** {{BACKEND_URL}}
-- **Tipo de app:** {{APP_TYPE}}
-
-INCLUYE:
-1. SSL/TLS con certificados (placeholders para Let's Encrypt)
-2. HTTP → HTTPS redirect
-3. Gzip/Brotli compression
-4. Cache headers para assets estáticos
-5. Security headers (HSTS, X-Frame-Options, CSP, X-Content-Type-Options)
-6. Rate limiting
-7. Proxy settings optimizados (timeouts, buffers, keepalive)
-8. Logging configurado
-9. Health check endpoint
-
-FORMATO: nginx.conf completo con comentarios.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior SysAdmin & Web Performance Engineer**.
-
-Create a **Nginx** production configuration:
-- **Domain:** {{DOMAIN}}
-- **Backend:** {{BACKEND_URL}}
-- **App type:** {{APP_TYPE}}
-
-INCLUDE:
-1. SSL/TLS with certificates (placeholders for Let's Encrypt)
-2. HTTP → HTTPS redirect
-3. Gzip/Brotli compression
-4. Cache headers for static assets
-5. Security headers (HSTS, X-Frame-Options, CSP, X-Content-Type-Options)
-6. Rate limiting
-7. Optimized proxy settings (timeouts, buffers, keepalive)
-8. Configured logging
-9. Health check endpoint
-
-FORMAT: Complete nginx.conf with comments.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['nginx', 'web-server', 'devops', 'ssl', 'performance']
     },
     // Security - More
     {
@@ -706,48 +708,50 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Plan de Penetration Testing', en: 'Penetration Testing Plan' },
         description: { es: 'Genera un plan de pentest estructurado con fases, herramientas y reportes.', en: 'Generate a structured pentest plan with phases, tools, and reporting.' },
         prompt: {
-            es: `Actúa como un **Senior Penetration Tester (OSCP/OSWE)**.
+            es: `Actúa como un **Senior Penetration Tester** con certificaciones OSCP/OSWE y ética profesional.
 
-Crea un **Plan de Penetration Testing** para:
+Diseña un **Plan de Penetration Testing** estructurado para **{{APP_NAME}}**, una {{APP_TYPE}}, limitado al alcance **{{SCOPE}}**. El plan debe ser accionable, legalmente correcto y trazable.
+
+**Contexto:**
 - **Aplicación:** {{APP_NAME}}
 - **Tipo:** {{APP_TYPE}}
-- **Scope:** {{SCOPE}}
+- **Alcance autorizado:** {{SCOPE}}
 
-FASES DEL PENTEST:
-1. **Reconnaissance**: OSINT, subdomain enumeration, tech stack detection
-2. **Scanning**: Port scanning, vulnerability scanning, web application scanning
-3. **Exploitation**: Authentication bypass, injection attacks, file upload, SSRF, etc.
-4. **Post-Exploitation**: Privilege escalation, lateral movement, data exfiltration
-5. **Reporting**: Executive summary, technical findings, risk scoring, remediation
+**FASES DEL PENTEST:**
+1. **Reconnaissance**: OSINT, enumeración de subdominios y detección de stack.
+2. **Scanning**: escaneo de puertos, vulnerabilidades y web application scanning.
+3. **Exploitation**: auth bypass, injection, file upload, SSRF y similares.
+4. **Post-Exploitation**: escalada de privilegios, movimiento lateral y extracción controlada de datos.
+5. **Reporting**: resumen ejecutivo, hallazgos técnicos y remediación priorizada.
 
-ENTREGABLES:
-- Metodología (OWASP Top 10, PTES, NIST)
-- Herramientas recomendadas por fase
-- Matriz de riesgos
-- Template de reporte
-- Timeline estimado
+**FORMATO DE SALIDA:**
+- Metodología elegida (OWASP Top 10, PTES, NIST) con justificación.
+- Herramientas recomendadas por fase.
+- Matriz de riesgos con scoring.
+- Template de reporte y timeline estimado.
 
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Penetration Tester (OSCP/OSWE)**.
+            en: `Act as a **Senior Penetration Tester** with OSCP/OSWE certifications and professional ethics.
 
-Create a **Penetration Testing Plan** for:
+Design a structured **Penetration Testing Plan** for **{{APP_NAME}}**, a {{APP_TYPE}}, limited to the **{{SCOPE}}** scope. The plan must be actionable, legally sound, and traceable.
+
+**Context:**
 - **Application:** {{APP_NAME}}
 - **Type:** {{APP_TYPE}}
-- **Scope:** {{SCOPE}}
+- **Authorized scope:** {{SCOPE}}
 
-PENTEST PHASES:
-1. **Reconnaissance**: OSINT, subdomain enumeration, tech stack detection
-2. **Scanning**: Port scanning, vulnerability scanning, web application scanning
-3. **Exploitation**: Authentication bypass, injection attacks, file upload, SSRF, etc.
-4. **Post-Exploitation**: Privilege escalation, lateral movement, data exfiltration
-5. **Reporting**: Executive summary, technical findings, risk scoring, remediation
+**PENTEST PHASES:**
+1. **Reconnaissance**: OSINT, subdomain enumeration, and stack detection.
+2. **Scanning**: port scanning, vulnerability scanning, and web application scanning.
+3. **Exploitation**: auth bypass, injection, file upload, SSRF, and similar.
+4. **Post-Exploitation**: privilege escalation, lateral movement, and controlled data exfiltration.
+5. **Reporting**: executive summary, technical findings, and prioritized remediation.
 
-DELIVERABLES:
-- Methodology (OWASP Top 10, PTES, NIST)
-- Recommended tools per phase
-- Risk matrix
-- Report template
-- Estimated timeline
+**OUTPUT FORMAT:**
+- Chosen methodology (OWASP Top 10, PTES, NIST) with justification.
+- Recommended tools per phase.
+- Risk matrix with scoring.
+- Report template and estimated timeline.
 
 LANGUAGE: {{LANG_OUTPUT}}`
         },
@@ -760,48 +764,50 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Plan de Respuesta a Incidentes', en: 'Incident Response Plan' },
         description: { es: 'Genera un playbook de respuesta a incidentes de seguridad con roles y procedimientos.', en: 'Generate a security incident response playbook with roles and procedures.' },
         prompt: {
-            es: `Actúa como un **Incident Response Lead (GCIH)** y **CISO**.
+            es: `Actúa como un **Incident Response Lead (GCIH)** con visión de **CISO**.
 
-Crea un **Plan de Respuesta a Incidentes** para:
-- **Organización:** {{ORG}}
+Crea un **Plan de Respuesta a Incidentes** para **{{ORGANIZATION}}**, adaptado a su infraestructura **{{INFRASTRUCTURE}}**. El plan debe permitir al equipo contener y recuperar incidentes sin fricción ni ambigüedad.
+
+**Contexto:**
+- **Organización:** {{ORGANIZATION}}
 - **Tipo de infraestructura:** {{INFRASTRUCTURE}}
 
-FASES (NIST SP 800-61):
-1. **Preparation**: Team, tools, communication plan, training
-2. **Detection & Analysis**: Alert sources, triage process, severity classification
-3. **Containment**: Short-term and long-term containment strategies
-4. **Eradication**: Root cause removal, system hardening
-5. **Recovery**: System restoration, monitoring, validation
-6. **Post-Incident**: Lessons learned, report, process improvement
+**FASES (NIST SP 800-61):**
+1. **Preparation**: equipo, herramientas, plan de comunicación y entrenamiento.
+2. **Detection & Analysis**: fuentes de alerta, triage y clasificación de severidad.
+3. **Containment**: estrategias de contención a corto y largo plazo.
+4. **Eradication**: eliminación de causa raíz y hardening.
+5. **Recovery**: restauración, monitoreo y validación.
+6. **Post-Incident**: lecciones aprendidas, reporte y mejora continua.
 
-INCLUYE:
-- Roles y responsabilidades (IR Lead, Comms, Legal, Tech)
-- Matriz de severidad (P1-P4)
-- Templates de comunicación
-- Escalation paths
-- Checklist de forense digital
+**FORMATO DE SALIDA:**
+- Roles y responsabilidades (IR Lead, Comms, Legal, Tech).
+- Matriz de severidad (P1-P4) con SLAs.
+- Templates de comunicación y paths de escalado.
+- Checklist de forense digital aplicable a {{INFRASTRUCTURE}}.
 
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Incident Response Lead (GCIH)** and **CISO**.
+            en: `Act as an **Incident Response Lead (GCIH)** with a **CISO** mindset.
 
-Create an **Incident Response Plan** for:
-- **Organization:** {{ORG}}
+Create an **Incident Response Plan** for **{{ORGANIZATION}}**, tailored to its **{{INFRASTRUCTURE}}** infrastructure. The plan must let the team contain and recover incidents without friction or ambiguity.
+
+**Context:**
+- **Organization:** {{ORGANIZATION}}
 - **Infrastructure type:** {{INFRASTRUCTURE}}
 
-PHASES (NIST SP 800-61):
-1. **Preparation**: Team, tools, communication plan, training
-2. **Detection & Analysis**: Alert sources, triage process, severity classification
-3. **Containment**: Short-term and long-term containment strategies
-4. **Eradication**: Root cause removal, system hardening
-5. **Recovery**: System restoration, monitoring, validation
-6. **Post-Incident**: Lessons learned, report, process improvement
+**PHASES (NIST SP 800-61):**
+1. **Preparation**: team, tools, communication plan, and training.
+2. **Detection & Analysis**: alert sources, triage, and severity classification.
+3. **Containment**: short- and long-term containment strategies.
+4. **Eradication**: root cause removal and hardening.
+5. **Recovery**: restoration, monitoring, and validation.
+6. **Post-Incident**: lessons learned, report, and continuous improvement.
 
-INCLUDE:
-- Roles and responsibilities (IR Lead, Comms, Legal, Tech)
-- Severity matrix (P1-P4)
-- Communication templates
-- Escalation paths
-- Digital forensics checklist
+**OUTPUT FORMAT:**
+- Roles and responsibilities (IR Lead, Comms, Legal, Tech).
+- Severity matrix (P1-P4) with SLAs.
+- Communication templates and escalation paths.
+- Digital forensics checklist applicable to {{INFRASTRUCTURE}}.
 
 LANGUAGE: {{LANG_OUTPUT}}`
         },
@@ -817,215 +823,58 @@ LANGUAGE: {{LANG_OUTPUT}}`
         prompt: {
             es: `Actúa como un **Developer Experience (DX) Engineer**.
 
-Crea un **README.md profesional** para:
+Redacta un **README.md profesional** para el proyecto **{{PROJECT_NAME}}**: **{{DESCRIPTION}}**, construido con **{{TECH_STACK}}**. El README debe reducir la fricción de onboarding de cualquier nueva persona contribuidora.
+
+**Contexto:**
 - **Proyecto:** {{PROJECT_NAME}}
 - **Descripción:** {{DESCRIPTION}}
-- **Lenguaje:** {{LANG}}
-- **Framework:** {{FRAMEWORK}}
+- **Stack tecnológico:** {{TECH_STACK}}
 
-SECCIONES:
-1. **Header**: Logo, título, badges (build, coverage, version, license)
-2. **About**: Descripción concisa con features en bullet points
-3. **Screenshots**: Placeholders con descripción
-4. **Quick Start**: Instalación y uso en 3 pasos
-5. **Installation**: Prerrequisitos, pasos detallados, variables de entorno
-6. **Usage**: Ejemplos de código, comandos, configuración
-7. **Project Structure**: Árbol de archivos explicado
-8. **API Reference**: Endpoints principales (si aplica)
-9. **Contributing**: Guidelines, commit convention, PR template
-10. **Testing**: Cómo correr tests
-11. **License**: Tipo de licencia
-12. **Credits**: Agradecimientos y referencias
+**SECCIONES:**
+1. Header con título y badges (build, coverage, version, license).
+2. **About** con features en bullets.
+3. **Quick Start** funcional en 3 pasos.
+4. **Installation**: prerrequisitos y variables de entorno.
+5. **Usage**: ejemplos de código y comandos clave.
+6. Estructura de carpetas explicada.
+7. **Contributing** con convención de commits.
+8. **Testing** con comandos reales.
+9. Licencia y créditos.
 
-FORMATO: Markdown con emojis, badges de shields.io, y Mermaid diagrams.
+**FORMATO DE SALIDA:**
+- Markdown con badges shields.io y diagrams Mermaid donde aporten.
+- Todos los comandos coherentes con {{TECH_STACK}}.
+
 IDIOMA: {{LANG_OUTPUT}}`,
             en: `Act as a **Developer Experience (DX) Engineer**.
 
-Create a **professional README.md** for:
+Draft a **professional README.md** for the project **{{PROJECT_NAME}}**: **{{DESCRIPTION}}**, built on **{{TECH_STACK}}**. The README must reduce onboarding friction for any new contributor.
+
+**Context:**
 - **Project:** {{PROJECT_NAME}}
 - **Description:** {{DESCRIPTION}}
-- **Language:** {{LANG}}
-- **Framework:** {{FRAMEWORK}}
+- **Tech stack:** {{TECH_STACK}}
 
-SECTIONS:
-1. **Header**: Logo, title, badges (build, coverage, version, license)
-2. **About**: Concise description with bullet point features
-3. **Screenshots**: Placeholders with descriptions
-4. **Quick Start**: Installation and usage in 3 steps
-5. **Installation**: Prerequisites, detailed steps, environment variables
-6. **Usage**: Code examples, commands, configuration
-7. **Project Structure**: Explained file tree
-8. **API Reference**: Main endpoints (if applicable)
-9. **Contributing**: Guidelines, commit convention, PR template
-10. **Testing**: How to run tests
-11. **License**: License type
-12. **Credits**: Acknowledgments and references
+**SECTIONS:**
+1. Header with title and badges (build, coverage, version, license).
+2. **About** with feature bullets.
+3. Working **Quick Start** in 3 steps.
+4. **Installation**: prerequisites and environment variables.
+5. **Usage**: code examples and key commands.
+6. Explained folder structure.
+7. **Contributing** with commit convention.
+8. **Testing** with real commands.
+9. License and credits.
 
-FORMAT: Markdown with emojis, shields.io badges, and Mermaid diagrams.
+**OUTPUT FORMAT:**
+- Markdown with shields.io badges and Mermaid diagrams where useful.
+- All commands consistent with {{TECH_STACK}}.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['readme', 'documentation', 'github', 'dx', 'open-source']
     },
-    {
-        id: 'changelog_generator',
-        category: 'writing',
-        icon: '📋',
-        title: { es: 'CHANGELOG con Conventional Commits', en: 'CHANGELOG with Conventional Commits' },
-        description: { es: 'Genera un CHANGELOG.md siguiendo Conventional Commits y Keep a Changelog.', en: 'Generate a CHANGELOG.md following Conventional Commits and Keep a Changelog.' },
-        prompt: {
-            es: `Actúa como un **Release Engineer**.
-
-Crea un template de **CHANGELOG.md** siguiendo:
-- **Formato:** Keep a Changelog
-- **Commits:** Conventional Commits (feat, fix, docs, style, refactor, test, chore)
-- **Versión:** {{VERSION}}
-
-ESTRUCTURA:
-1. Header con versión y fecha
-2. Categorías: Added, Changed, Deprecated, Removed, Fixed, Security
-3. Links a commits/issues
-4. Template para futuras versiones
-5. Instrucciones de uso con conventional commits
-
-INCLUYE:
-- Ejemplo con datos ficticios realistas
-- Script de generación automática (bash o node)
-- Integración con GitHub Actions
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Release Engineer**.
-
-Create a **CHANGELOG.md** template following:
-- **Format:** Keep a Changelog
-- **Commits:** Conventional Commits (feat, fix, docs, style, refactor, test, chore)
-- **Version:** {{VERSION}}
-
-STRUCTURE:
-1. Header with version and date
-2. Categories: Added, Changed, Deprecated, Removed, Fixed, Security
-3. Links to commits/issues
-4. Template for future versions
-5. Usage instructions with conventional commits
-
-INCLUDE:
-- Example with realistic dummy data
-- Auto-generation script (bash or node)
-- GitHub Actions integration
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['changelog', 'conventional-commits', 'release', 'devops', 'documentation']
-    },
     // Business - More
-    {
-        id: 'retrospective_template',
-        category: 'business',
-        icon: '🔄',
-        title: { es: 'Sprint Retrospective Template', en: 'Sprint Retrospective Template' },
-        description: { es: 'Genera una plantilla de retrospectiva ágil con múltiples formatos y action items.', en: 'Generate an agile retrospective template with multiple formats and action items.' },
-        prompt: {
-            es: `Actúa como un **Agile Coach & Scrum Master**.
-
-Crea una **plantilla de Sprint Retrospective** para:
-- **Equipo:** {{TEAM}}
-- **Sprint:** {{SPRINT_NUMBER}}
-- **Duración:** {{DURATION}}
-
-FORMATOS (elige el mejor o incluye varios):
-1. **Start/Stop/Continue**: Simple y efectivo
-2. **Mad/Sad/Glad**: Emocional
-3. **4Ls (Liked, Learned, Lacked, Longed for)**: Reflexivo
-4. **Sailboat**: Visual y metafórico
-5. **Starfish (Keep, Stop, Start, More, Less)**: Accionable
-
-INCLUYE:
-- Icebreaker activity
-- Time-boxed agenda
-- Voting mechanism
-- Action items template con owner y deadline
-- Metrics del sprint (velocity, burndown, bugs)
-- Follow-up checklist
-
-FORMATO: Markdown con tablas y checkboxes.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Agile Coach & Scrum Master**.
-
-Create a **Sprint Retrospective template** for:
-- **Team:** {{TEAM}}
-- **Sprint:** {{SPRINT_NUMBER}}
-- **Duration:** {{DURATION}}
-
-FORMATS (choose the best or include several):
-1. **Start/Stop/Continue**: Simple and effective
-2. **Mad/Sad/Glad**: Emotional
-3. **4Ls (Liked, Learned, Lacked, Longed for)**: Reflective
-4. **Sailboat**: Visual and metaphorical
-5. **Starfish (Keep, Stop, Start, More, Less)**: Actionable
-
-INCLUDE:
-- Icebreaker activity
-- Time-boxed agenda
-- Voting mechanism
-- Action items template with owner and deadline
-- Sprint metrics (velocity, burndown, bugs)
-- Follow-up checklist
-
-FORMAT: Markdown with tables and checkboxes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['agile', 'scrum', 'retrospective', 'team', 'process']
-    },
-    {
-        id: 'stakeholder_update',
-        category: 'business',
-        icon: '📢',
-        title: { es: 'Update para Stakeholders', en: 'Stakeholder Update' },
-        description: { es: 'Genera un reporte de progreso ejecutivo para stakeholders con métricas y riesgos.', en: 'Generate an executive progress report for stakeholders with metrics and risks.' },
-        prompt: {
-            es: `Actúa como un **Technical Program Manager**.
-
-Crea un **Stakeholder Update** para:
-- **Proyecto:** {{PROJECT}}
-- **Período:** {{PERIOD}}
-- **Audiencia:** {{AUDIENCE}}
-
-ESTRUCTURA:
-1. **Executive Summary**: 3-5 líneas con estado general (🟢🟡🔴)
-2. **Key Achievements**: Logros del período con métricas
-3. **Progress by Workstream**: Tabla con % completado por área
-4. **Risks & Blockers**: Con impacto, probabilidad y mitigación
-5. **Budget & Timeline**: vs plan original
-6. **Next Period Plan**: Prioridades y milestones
-7. **Decisions Needed**: Qué necesita aprobación de stakeholders
-8. **Appendix**: Métricas detalladas, gráficos descritos
-
-TONO: Ejecutivo, conciso, data-driven. Sin jerga técnica innecesaria.
-FORMATO: Markdown con tablas y emojis de estado.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Technical Program Manager**.
-
-Create a **Stakeholder Update** for:
-- **Project:** {{PROJECT}}
-- **Period:** {{PERIOD}}
-- **Audience:** {{AUDIENCE}}
-
-STRUCTURE:
-1. **Executive Summary**: 3-5 lines with overall status (🟢🟡🔴)
-2. **Key Achievements**: Period achievements with metrics
-3. **Progress by Workstream**: Table with % completion by area
-4. **Risks & Blockers**: With impact, probability, and mitigation
-5. **Budget & Timeline**: vs original plan
-6. **Next Period Plan**: Priorities and milestones
-7. **Decisions Needed**: What needs stakeholder approval
-8. **Appendix**: Detailed metrics, described charts
-
-TONE: Executive, concise, data-driven. No unnecessary technical jargon.
-FORMAT: Markdown with tables and status emojis.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['stakeholder', 'report', 'management', 'executive', 'communication']
-    },
-
     // ─── DevOps Extended ─────────────────────────────────────────────────────
 
     {
@@ -1035,94 +884,56 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Docker Compose Multi-Service', en: 'Multi-Service Docker Compose' },
         description: { es: 'Entorno de desarrollo completo con múltiples servicios, redes y volúmenes.', en: 'Complete development environment with multiple services, networks, and volumes.' },
         prompt: {
-            es: `Actúa como un **Senior DevOps Engineer**.
+            es: `Actúa como un **Senior DevOps Engineer** enfocado en entornos de desarrollo local reproducibles.
 
-Crea un **docker-compose.yml** completo para:
+Crea un **docker-compose.yml** completo para un entorno de **{{APP_TYPE}}** que incluye los servicios adicionales **{{SERVICES}}** y usa **{{DATABASE}}** como base de datos.
+
+**Contexto:**
 - **App principal:** {{APP_TYPE}}
 - **Servicios adicionales:** {{SERVICES}}
-- **Base de datos:** {{DB}}
+- **Base de datos:** {{DATABASE}}
 
-REQUISITOS:
-1. Multi-service con app, db, cache, y worker si aplica
-2. Networks separados (frontend, backend)
-3. Volumes persistentes para datos
-4. Health checks por servicio
-5. Environment variables con .env
-6. Restart policies
-7. Resource limits (mem/cpu)
-8. Development vs production profiles
+**REQUISITOS:**
+1. Multi-service con app, db, cache y worker si aplica.
+2. Redes separadas para frontend y backend.
+3. Volúmenes persistentes para datos de {{DATABASE}} y otros estados.
+4. Health checks por servicio.
+5. Variables de entorno centralizadas en '.env'.
+6. Restart policies y límites de recursos (mem/cpu).
+7. Perfiles development y production con overrides.
 
-FORMATO: docker-compose.yml + .env.example + README con comandos.
+**FORMATO DE SALIDA:**
+- 'docker-compose.yml' completo con comentarios.
+- '.env.example' con todas las variables.
+- README con comandos de uso (up, logs, down).
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior DevOps Engineer**.
+            en: `Act as a **Senior DevOps Engineer** focused on reproducible local development environments.
 
-Create a complete **docker-compose.yml** for:
+Create a complete **docker-compose.yml** for a **{{APP_TYPE}}** environment that includes the additional services **{{SERVICES}}** and uses **{{DATABASE}}** as the database.
+
+**Context:**
 - **Main app:** {{APP_TYPE}}
 - **Additional services:** {{SERVICES}}
-- **Database:** {{DB}}
+- **Database:** {{DATABASE}}
 
-REQUIREMENTS:
-1. Multi-service with app, db, cache, and worker if applicable
-2. Separate networks (frontend, backend)
-3. Persistent volumes for data
-4. Health checks per service
-5. Environment variables with .env
-6. Restart policies
-7. Resource limits (mem/cpu)
-8. Development vs production profiles
+**REQUIREMENTS:**
+1. Multi-service with app, db, cache, and worker if applicable.
+2. Separate frontend and backend networks.
+3. Persistent volumes for {{DATABASE}} data and other state.
+4. Health checks per service.
+5. Environment variables centralized in '.env'.
+6. Restart policies and resource limits (mem/cpu).
+7. Development and production profiles with overrides.
 
-FORMAT: docker-compose.yml + .env.example + README with commands.
+**OUTPUT FORMAT:**
+- Complete 'docker-compose.yml' with comments.
+- '.env.example' with all variables.
+- README with usage commands (up, logs, down).
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['docker', 'compose', 'devops', 'development', 'multi-service']
-    },
-    {
-        id: 'gitops_argocd',
-        category: 'devops',
-        icon: '🔄',
-        title: { es: 'GitOps con ArgoCD', en: 'GitOps with ArgoCD' },
-        description: { es: 'Configuración de ArgoCD para despliegue declarativo con App-of-Apps.', en: 'ArgoCD configuration for declarative deployment with App-of-Apps.' },
-        prompt: {
-            es: `Actúa como un **Senior Platform Engineer** experto en GitOps.
-
-Configura **ArgoCD** para:
-- **Cluster:** {{CLUSTER}}
-- **Repositorio git:** {{REPO}}
-- **Environments:** {{ENV}}
-
-INCLUYE:
-1. ArgoCD Application CRD (App-of-Apps pattern)
-2. ApplicationSet para multi-environment
-3. Sync policies (auto vs manual)
-4. Sync waves y hooks
-5. RBAC para equipos
-6. Notification config (Slack, email)
-7. Health checks custom
-8. Rollback strategy
-
-FORMATO: YAML manifests + README de uso.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Platform Engineer** expert in GitOps.
-
-Configure **ArgoCD** for:
-- **Cluster:** {{CLUSTER}}
-- **Git repo:** {{REPO}}
-- **Environments:** {{ENV}}
-
-INCLUDE:
-1. ArgoCD Application CRD (App-of-Apps pattern)
-2. ApplicationSet for multi-environment
-3. Sync policies (auto vs manual)
-4. Sync waves and hooks
-5. RBAC for teams
-6. Notification config (Slack, email)
-7. Custom health checks
-8. Rollback strategy
-
-FORMAT: YAML manifests + usage README.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['gitops', 'argocd', 'kubernetes', 'devops', 'cd']
     },
     {
         id: 'monitoring_stack',
@@ -1131,633 +942,115 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Monitoring Stack (Prometheus + Grafana)', en: 'Monitoring Stack (Prometheus + Grafana)' },
         description: { es: 'Configuración completa de observabilidad con alertas y dashboards.', en: 'Complete observability setup with alerts and dashboards.' },
         prompt: {
-            es: `Actúa como un **Senior SRE**.
+            es: `Actúa como un **Senior SRE** responsable de observabilidad accionable.
 
-Configura un **Monitoring Stack** para:
+Diseña un **Monitoring Stack (Prometheus + Grafana)** para una **{{APP_TYPE}}**, centrado en las métricas **{{METRICS}}** y con condiciones de alerta **{{ALERTS}}**.
+
+**Contexto:**
 - **App:** {{APP_TYPE}}
 - **Métricas clave:** {{METRICS}}
-- **Alertas:** {{ALERTS}}
+- **Condiciones de alerta:** {{ALERTS}}
 
-INCLUYE:
-1. Prometheus config con scrape targets y recording rules
-2. Grafana dashboards JSON (app, infra, business)
-3. Alertmanager con routing y receivers (Slack, PagerDuty, email)
-4. Exporters necesarios (node, app, db)
-5. ServiceMonitor CRDs (si K8s)
-6. Alert rules con severity y runbooks
-7. Retention y storage config
-8. docker-compose o Helm values
+**REQUISITOS:**
+1. Config de Prometheus: scrape targets y recording rules para {{METRICS}}.
+2. Dashboards de Grafana (app, infra, business) en formato JSON.
+3. Alertmanager con routing y receivers (Slack, PagerDuty, email).
+4. Exporters necesarios (node, app, db).
+5. Alert rules con severidad y runbooks por condición.
+6. Retención y configuración de storage.
+7. Entrega como docker-compose o Helm values.
 
-FORMATO: Configs completos + guía de dashboards.
+**FORMATO DE SALIDA:**
+- Configs completas (prometheus.yml, alert rules, alertmanager) con comentarios.
+- JSON de dashboards y guía de uso.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior SRE**.
+            en: `Act as a **Senior SRE** responsible for actionable observability.
 
-Configure a **Monitoring Stack** for:
+Design a **Monitoring Stack (Prometheus + Grafana)** for a **{{APP_TYPE}}**, focused on the key metrics **{{METRICS}}** and with alert conditions **{{ALERTS}}**.
+
+**Context:**
 - **App:** {{APP_TYPE}}
 - **Key metrics:** {{METRICS}}
-- **Alerts:** {{ALERTS}}
+- **Alert conditions:** {{ALERTS}}
 
-INCLUDE:
-1. Prometheus config with scrape targets and recording rules
-2. Grafana dashboards JSON (app, infra, business)
-3. Alertmanager with routing and receivers (Slack, PagerDuty, email)
-4. Required exporters (node, app, db)
-5. ServiceMonitor CRDs (if K8s)
-6. Alert rules with severity and runbooks
-7. Retention and storage config
-8. docker-compose or Helm values
+**REQUIREMENTS:**
+1. Prometheus config: scrape targets and recording rules for {{METRICS}}.
+2. Grafana dashboards (app, infra, business) in JSON format.
+3. Alertmanager with routing and receivers (Slack, PagerDuty, email).
+4. Required exporters (node, app, db).
+5. Alert rules with severity and runbooks per condition.
+6. Retention and storage configuration.
+7. Delivered as docker-compose or Helm values.
 
-FORMAT: Complete configs + dashboard guide.
+**OUTPUT FORMAT:**
+- Complete configs (prometheus.yml, alert rules, alertmanager) with comments.
+- Dashboard JSON and usage guide.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['monitoring', 'prometheus', 'grafana', 'sre', 'observability']
     },
-    {
-        id: 'disaster_recovery',
-        category: 'devops',
-        icon: '🛟',
-        title: { es: 'Disaster Recovery Plan', en: 'Disaster Recovery Plan' },
-        description: { es: 'Plan de recuperación ante desastres con RTO/RPO, backups y failover.', en: 'Disaster recovery plan with RTO/RPO, backups, and failover.' },
-        prompt: {
-            es: `Actúa como un **Senior Infrastructure Architect**.
-
-Crea un **Disaster Recovery Plan** para:
-- **Infraestructura:** {{INFRA}}
-- **RTO objetivo:** {{RTO}}
-- **RPO objetivo:** {{RPO}}
-
-INCLUYE:
-1. Business Impact Analysis (BIA)
-2. Estrategia de backups (full, incremental, differential)
-3. Plan de failover automático y manual
-4. Runbook paso a paso de recuperación
-5. Testing schedule y drills
-6. Comunicación de crisis
-7. Matriz de priorización de servicios
-8. Costos estimados de DR
-
-FORMATO: Documento estructurado con checklists.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Infrastructure Architect**.
-
-Create a **Disaster Recovery Plan** for:
-- **Infrastructure:** {{INFRA}}
-- **Target RTO:** {{RTO}}
-- **Target RPO:** {{RPO}}
-
-INCLUDE:
-1. Business Impact Analysis (BIA)
-2. Backup strategy (full, incremental, differential)
-3. Automatic and manual failover plan
-4. Step-by-step recovery runbook
-5. Testing schedule and drills
-6. Crisis communication
-7. Service prioritization matrix
-8. Estimated DR costs
-
-FORMAT: Structured document with checklists.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['disaster-recovery', 'backup', 'failover', 'infrastructure', 'rto', 'rpo']
-    },
-    {
-        id: 'cloud_cost_optimization',
-        category: 'devops',
-        icon: '💰',
-        title: { es: 'Cloud Cost Optimization (FinOps)', en: 'Cloud Cost Optimization (FinOps)' },
-        description: { es: 'Análisis de costos cloud con recomendaciones de ahorro FinOps.', en: 'Cloud cost analysis with FinOps savings recommendations.' },
-        prompt: {
-            es: `Actúa como un **FinOps Engineer**.
-
-Crea un **Plan de Optimización de Costos** para:
-- **Cloud Provider:** {{CLOUD}}
-- **Servicios en uso:** {{SERVICES}}
-- **Budget mensual:** {{BUDGET}}
-
-ANÁLISIS:
-1. Right-sizing de instancias
-2. Reserved Instances / Savings Plans
-3. Spot/Preemptible instances
-4. Storage lifecycle policies
-5. Data transfer optimization
-6. Idle resource detection
-7. Auto-scaling config
-8. Tagging strategy para cost allocation
-
-ENTREGABLE: Reporte con ahorros estimados por categoría y plan de implementación.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **FinOps Engineer**.
-
-Create a **Cost Optimization Plan** for:
-- **Cloud Provider:** {{CLOUD}}
-- **Services in use:** {{SERVICES}}
-- **Monthly budget:** {{BUDGET}}
-
-ANALYSIS:
-1. Instance right-sizing
-2. Reserved Instances / Savings Plans
-3. Spot/Preemptible instances
-4. Storage lifecycle policies
-5. Data transfer optimization
-6. Idle resource detection
-7. Auto-scaling config
-8. Tagging strategy for cost allocation
-
-DELIVERABLE: Report with estimated savings per category and implementation plan.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['finops', 'cost-optimization', 'cloud', 'aws', 'azure', 'gcp']
-    },
-    {
-        id: 'gitlab_cicd',
-        category: 'devops',
-        icon: '🐙',
-        title: { es: 'Pipeline CI/CD GitLab', en: 'GitLab CI/CD Pipeline' },
-        description: { es: 'Pipeline completo para GitLab con stages, caching y artifacts.', en: 'Complete pipeline for GitLab with stages, caching, and artifacts.' },
-        prompt: {
-            es: `Actúa como un **Senior DevOps Engineer**.
-
-Crea un **.gitlab-ci.yml** para:
-- **Lenguaje:** {{LANG}}
-- **Framework:** {{FRAMEWORK}}
-- **Target de deploy:** {{DEPLOY}}
-
-INCLUYE:
-1. Stages: lint → test → build → security → deploy
-2. Caching de dependencias
-3. Artifacts entre stages
-4. Manual approval para producción
-5. Environment-specific variables
-6. Docker-in-Docker si aplica
-7. Merge request pipelines
-8. Scheduled pipelines
-
-FORMATO: .gitlab-ci.yml completo con comentarios.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior DevOps Engineer**.
-
-Create a **.gitlab-ci.yml** for:
-- **Language:** {{LANG}}
-- **Framework:** {{FRAMEWORK}}
-- **Deploy target:** {{DEPLOY}}
-
-INCLUDE:
-1. Stages: lint → test → build → security → deploy
-2. Dependency caching
-3. Artifacts between stages
-4. Manual approval for production
-5. Environment-specific variables
-6. Docker-in-Docker if applicable
-7. Merge request pipelines
-8. Scheduled pipelines
-
-FORMAT: Complete .gitlab-ci.yml with comments.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['gitlab', 'ci-cd', 'devops', 'automation', 'pipeline']
-    },
-    {
-        id: 'ansible_playbook',
-        category: 'devops',
-        icon: '🔧',
-        title: { es: 'Ansible Playbook', en: 'Ansible Playbook' },
-        description: { es: 'Automatización de configuración de servidores con roles y vars.', en: 'Server configuration automation with roles and vars.' },
-        prompt: {
-            es: `Actúa como un **Senior SysAdmin** experto en Ansible.
-
-Crea un **Ansible Playbook** para:
-- **OS:** {{OS}}
-- **Servicios a configurar:** {{SERVICES}}
-- **Configuración específica:** {{CONFIG}}
-
-INCLUYE:
-1. Playbook principal con roles
-2. Roles con tasks, handlers, templates, vars
-3. Inventory file (dev/staging/prod)
-4. Vault para secrets
-5. Idempotent tasks
-6. Error handling y retries
-7. Tags para ejecución parcial
-8. README con uso
-
-FORMATO: Estructura de roles completa.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior SysAdmin** expert in Ansible.
-
-Create an **Ansible Playbook** for:
-- **OS:** {{OS}}
-- **Services to configure:** {{SERVICES}}
-- **Specific config:** {{CONFIG}}
-
-INCLUDE:
-1. Main playbook with roles
-2. Roles with tasks, handlers, templates, vars
-3. Inventory file (dev/staging/prod)
-4. Vault for secrets
-5. Idempotent tasks
-6. Error handling and retries
-7. Tags for partial execution
-8. README with usage
-
-FORMAT: Complete role structure.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['ansible', 'automation', 'sysadmin', 'configuration', 'infrastructure']
-    },
-    {
-        id: 'database_migration',
-        category: 'devops',
-        icon: '🗄️',
-        title: { es: 'Database Migration Plan', en: 'Database Migration Plan' },
-        description: { es: 'Estrategia de migración de base de datos con zero-downtime.', en: 'Database migration strategy with zero-downtime.' },
-        prompt: {
-            es: `Actúa como un **Senior DBA & Data Engineer**.
-
-Crea un **Plan de Migración de Base de Datos** para:
-- **Origen:** {{DB_SOURCE}}
-- **Destino:** {{DB_TARGET}}
-- **Tamaño estimado:** {{SIZE}}
-
-INCLUYE:
-1. Assessment de compatibilidad
-2. Estrategia de migración (online vs offline)
-3. Schema migration scripts
-4. Data migration con validación
-5. Zero-downtime strategy (dual-write, CDC)
-6. Rollback plan
-7. Testing de integridad
-8. Performance post-migración
-
-FORMATO: Plan detallado con scripts y timeline.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior DBA & Data Engineer**.
-
-Create a **Database Migration Plan** for:
-- **Source:** {{DB_SOURCE}}
-- **Target:** {{DB_TARGET}}
-- **Estimated size:** {{SIZE}}
-
-INCLUDE:
-1. Compatibility assessment
-2. Migration strategy (online vs offline)
-3. Schema migration scripts
-4. Data migration with validation
-5. Zero-downtime strategy (dual-write, CDC)
-6. Rollback plan
-7. Integrity testing
-8. Post-migration performance
-
-FORMAT: Detailed plan with scripts and timeline.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['database', 'migration', 'dba', 'zero-downtime', 'data']
-    },
-    {
-        id: 'cdn_edge_config',
-        category: 'devops',
-        icon: '🌐',
-        title: { es: 'CDN + Edge Configuration', en: 'CDN + Edge Configuration' },
-        description: { es: 'Configuración CDN con caching, WAF y edge functions.', en: 'CDN configuration with caching, WAF, and edge functions.' },
-        prompt: {
-            es: `Actúa como un **Senior Edge/CDN Engineer**.
-
-Configura una **CDN** para:
-- **Proveedor:** {{CDN}}
-- **Dominio:** {{DOMAIN}}
-- **Origin:** {{ORIGIN}}
-
-INCLUYE:
-1. Cache rules por path y content type
-2. WAF rules y rate limiting
-3. Edge functions (redirects, rewrites, auth)
-4. SSL/TLS config
-5. Compression (Brotli, Gzip)
-6. Image optimization
-7. Custom error pages
-8. Monitoring y analytics
-
-FORMATO: Config completa + guía de deployment.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Edge/CDN Engineer**.
-
-Configure a **CDN** for:
-- **Provider:** {{CDN}}
-- **Domain:** {{DOMAIN}}
-- **Origin:** {{ORIGIN}}
-
-INCLUDE:
-1. Cache rules by path and content type
-2. WAF rules and rate limiting
-3. Edge functions (redirects, rewrites, auth)
-4. SSL/TLS config
-5. Compression (Brotli, Gzip)
-6. Image optimization
-7. Custom error pages
-8. Monitoring and analytics
-
-FORMAT: Complete config + deployment guide.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['cdn', 'edge', 'cloudflare', 'waf', 'caching', 'performance']
-    },
-    {
-        id: 'infra_runbook',
-        category: 'devops',
-        icon: '📋',
-        title: { es: 'Infrastructure Runbook', en: 'Infrastructure Runbook' },
-        description: { es: 'Procedimientos operacionales para infraestructura.', en: 'Operational procedures for infrastructure.' },
-        prompt: {
-            es: `Actúa como un **Senior SRE**.
-
-Crea un **Infrastructure Runbook** para:
-- **Infraestructura:** {{INFRA}}
-- **Escenarios comunes:** {{SCENARIOS}}
-- **Herramientas:** {{TOOLS}}
-
-INCLUYE:
-1. Procedimientos de escalado
-2. Recovery de servicios caídos
-3. Rotación de certificados
-4. Backup y restore procedures
-5. Debug de performance issues
-6. Incident response flow
-7. Contact list y escalation
-8. Post-incident checklist
-
-FORMATO: Runbook con pasos numerados y comandos copy-paste.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior SRE**.
-
-Create an **Infrastructure Runbook** for:
-- **Infrastructure:** {{INFRA}}
-- **Common scenarios:** {{SCENARIOS}}
-- **Tools:** {{TOOLS}}
-
-INCLUDE:
-1. Scaling procedures
-2. Service crash recovery
-3. Certificate rotation
-4. Backup and restore procedures
-5. Performance issue debugging
-6. Incident response flow
-7. Contact list and escalation
-8. Post-incident checklist
-
-FORMAT: Runbook with numbered steps and copy-paste commands.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['runbook', 'sre', 'operations', 'infrastructure', 'procedures']
-    },
-
-    // ─── Security Extended ────────────────────────────────────────────────────
-
-    {
-        id: 'privacy_impact_assessment',
-        category: 'security',
-        icon: '🔐',
-        title: { es: 'Privacy Impact Assessment (GDPR/LGPD)', en: 'Privacy Impact Assessment (GDPR/LGPD)' },
-        description: { es: 'Evaluación de impacto en privacidad con mapeo de datos y lawful basis.', en: 'Privacy impact assessment with data mapping and lawful basis.' },
-        prompt: {
-            es: `Actúa como un **Data Protection Officer (DPO)**.
-
-Realiza un **Privacy Impact Assessment (PIA/DPIA)** para:
-- **Aplicación:** {{APP}}
-- **Tipos de datos:** {{DATA_TYPES}}
-- **Jurisdicción:** {{JURISDICTION}}
-
-ANÁLISIS:
-1. Data mapping (qué datos, dónde, por qué, quién accede)
-2. Lawful basis para cada procesamiento
-3. Data retention policies
-4. Data subject rights (access, deletion, portability)
-5. Cross-border data transfers
-6. Third-party processor assessment
-7. Risk assessment con mitigaciones
-8. Compliance checklist (GDPR/LGPD/CCPA)
-
-FORMATO: Documento formal con tablas y recomendaciones.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Data Protection Officer (DPO)**.
-
-Perform a **Privacy Impact Assessment (PIA/DPIA)** for:
-- **Application:** {{APP}}
-- **Data types:** {{DATA_TYPES}}
-- **Jurisdiction:** {{JURISDICTION}}
-
-ANALYSIS:
-1. Data mapping (what data, where, why, who accesses)
-2. Lawful basis for each processing
-3. Data retention policies
-4. Data subject rights (access, deletion, portability)
-5. Cross-border data transfers
-6. Third-party processor assessment
-7. Risk assessment with mitigations
-8. Compliance checklist (GDPR/LGPD/CCPA)
-
-FORMAT: Formal document with tables and recommendations.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['privacy', 'gdpr', 'lgpd', 'compliance', 'dpo', 'data-protection']
-    },
-    {
+// ─── Security Extended ────────────────────────────────────────────────────
+{
         id: 'secrets_management',
         category: 'security',
         icon: '🗝️',
         title: { es: 'Secrets Management Plan', en: 'Secrets Management Plan' },
         description: { es: 'Estrategia de gestión de secretos con Vault, rotación y auditoría.', en: 'Secrets management strategy with Vault, rotation, and auditing.' },
         prompt: {
-            es: `Actúa como un **Security Engineer** especializado en secrets management.
+            es: `Actúa como un **Security Engineer** especializado en gestión de secretos.
 
-Diseña un **Plan de Gestión de Secretos** para:
+Diseña un **Plan de Gestión de Secretos** para la infraestructura **{{INFRA}}**, cubriendo los tipos de secretos **{{SECRETS}}** con una política de rotación **{{ROTATION}}**.
+
+**Contexto:**
 - **Infraestructura:** {{INFRA}}
 - **Tipos de secretos:** {{SECRETS}}
 - **Política de rotación:** {{ROTATION}}
 
-INCLUYE:
-1. HashiCorp Vault o AWS Secrets Manager config
-2. Secret types classification (API keys, DB creds, certs, tokens)
-3. Rotation automation
-4. Access control y audit logging
-5. Secret injection en CI/CD
-6. Emergency break-glass procedures
-7. Secret scanning en repos (git-secrets, gitleaks)
-8. Migration de hardcoded secrets
+**REQUISITOS:**
+1. Selección y configuración de la herramienta (Vault, AWS Secrets Manager o similar).
+2. Clasificación de secretos y modelo de acceso con mínimo privilegio.
+3. Automatización de rotación según {{ROTATION}}.
+4. Auditoría y logging de acceso.
+5. Inyección de secretos en CI/CD de forma segura.
+6. Procedimiento break-glass de emergencia.
+7. Escaneo de secretos en repositorios (gitleaks, git-secrets).
+8. Plan de migración desde secretos hardcodeados.
 
-FORMATO: Arquitectura + configs + runbooks.
+**FORMATO DE SALIDA:**
+- Arquitectura del flujo de secretos.
+- Configs y policies listas para usar.
+- Runbooks de rotación, acceso y emergencia.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Security Engineer** specializing in secrets management.
+            en: `Act as a **Security Engineer** specialized in secrets management.
 
-Design a **Secrets Management Plan** for:
+Design a **Secrets Management Plan** for the **{{INFRA}}** infrastructure, covering the secret types **{{SECRETS}}** with a **{{ROTATION}}** rotation policy.
+
+**Context:**
 - **Infrastructure:** {{INFRA}}
 - **Secret types:** {{SECRETS}}
 - **Rotation policy:** {{ROTATION}}
 
-INCLUDE:
-1. HashiCorp Vault or AWS Secrets Manager config
-2. Secret types classification (API keys, DB creds, certs, tokens)
-3. Rotation automation
-4. Access control and audit logging
-5. Secret injection in CI/CD
-6. Emergency break-glass procedures
-7. Secret scanning in repos (git-secrets, gitleaks)
-8. Migration from hardcoded secrets
+**REQUIREMENTS:**
+1. Tool selection and configuration (Vault, AWS Secrets Manager, or similar).
+2. Secret classification and least-privilege access model.
+3. Rotation automation according to {{ROTATION}}.
+4. Access auditing and logging.
+5. Secure secret injection in CI/CD.
+6. Emergency break-glass procedure.
+7. Secret scanning in repositories (gitleaks, git-secrets).
+8. Migration plan from hardcoded secrets.
 
-FORMAT: Architecture + configs + runbooks.
+**OUTPUT FORMAT:**
+- Secrets flow architecture.
+- Ready-to-use configs and policies.
+- Runbooks for rotation, access, and emergencies.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['secrets', 'vault', 'security', 'rotation', 'credentials']
-    },
-    {
-        id: 'zero_trust_architecture',
-        category: 'security',
-        icon: '🏗️',
-        title: { es: 'Zero Trust Architecture Design', en: 'Zero Trust Architecture Design' },
-        description: { es: 'Diseño de arquitectura Zero Trust con identidad, red y datos.', en: 'Zero Trust architecture design with identity, network, and data.' },
-        prompt: {
-            es: `Actúa como un **Zero Trust Security Architect**.
-
-Diseña una **Arquitectura Zero Trust** para:
-- **Tamaño de organización:** {{ORG_SIZE}}
-- **Infraestructura:** {{INFRA}}
-- **Requisitos de compliance:** {{COMPLIANCE}}
-
-PILARES:
-1. Identity (MFA, SSO, conditional access, PAM)
-2. Device (MDM, endpoint security, compliance checks)
-3. Network (micro-segmentation, ZTNA, SDP)
-4. Application (API gateway, WAF, service mesh)
-5. Data (classification, encryption, DLP)
-6. Visibility & Analytics (SIEM, UEBA, logging)
-7. Automation & Orchestration (SOAR)
-8. Implementation roadmap por fases
-
-FORMATO: Documento de arquitectura con diagramas descritos.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Zero Trust Security Architect**.
-
-Design a **Zero Trust Architecture** for:
-- **Organization size:** {{ORG_SIZE}}
-- **Infrastructure:** {{INFRA}}
-- **Compliance requirements:** {{COMPLIANCE}}
-
-PILLARS:
-1. Identity (MFA, SSO, conditional access, PAM)
-2. Device (MDM, endpoint security, compliance checks)
-3. Network (micro-segmentation, ZTNA, SDP)
-4. Application (API gateway, WAF, service mesh)
-5. Data (classification, encryption, DLP)
-6. Visibility & Analytics (SIEM, UEBA, logging)
-7. Automation & Orchestration (SOAR)
-8. Phased implementation roadmap
-
-FORMAT: Architecture document with described diagrams.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['zero-trust', 'architecture', 'security', 'identity', 'network']
-    },
-    {
-        id: 'soc2_readiness',
-        category: 'security',
-        icon: '✅',
-        title: { es: 'SOC 2 Readiness Checklist', en: 'SOC 2 Readiness Checklist' },
-        description: { es: 'Checklist de preparación para auditoría SOC 2 Type II.', en: 'Readiness checklist for SOC 2 Type II audit.' },
-        prompt: {
-            es: `Actúa como un **SOC 2 Compliance Consultant**.
-
-Crea un **SOC 2 Readiness Checklist** para:
-- **Organización:** {{ORG}}
-- **Scope:** {{SCOPE}}
-- **Timeline:** {{TIMELINE}}
-
-TRUST SERVICE CRITERIA:
-1. Security (Common Criteria)
-2. Availability
-3. Processing Integrity
-4. Confidentiality
-5. Privacy
-
-PARA CADA CRITERIO:
-- Controles requeridos
-- Evidencia necesaria
-- Gap analysis template
-- Remediation plan
-- Owner asignado
-
-FORMATO: Checklist con tablas y timeline.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **SOC 2 Compliance Consultant**.
-
-Create a **SOC 2 Readiness Checklist** for:
-- **Organization:** {{ORG}}
-- **Scope:** {{SCOPE}}
-- **Timeline:** {{TIMELINE}}
-
-TRUST SERVICE CRITERIA:
-1. Security (Common Criteria)
-2. Availability
-3. Processing Integrity
-4. Confidentiality
-5. Privacy
-
-FOR EACH CRITERION:
-- Required controls
-- Evidence needed
-- Gap analysis template
-- Remediation plan
-- Assigned owner
-
-FORMAT: Checklist with tables and timeline.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['soc2', 'compliance', 'audit', 'security', 'trust']
-    },
-    {
-        id: 'bug_bounty_program',
-        category: 'security',
-        icon: '🐛',
-        title: { es: 'Bug Bounty Program', en: 'Bug Bounty Program' },
-        description: { es: 'Programa de bug bounty con scope, reglas, rewards y triage.', en: 'Bug bounty program with scope, rules, rewards, and triage.' },
-        prompt: {
-            es: `Actúa como un **Application Security Lead**.
-
-Diseña un **Bug Bounty Program** para:
-- **Aplicación:** {{APP}}
-- **Scope:** {{SCOPE}}
-- **Budget:** {{BUDGET}}
-
-INCLUYE:
-1. Scope definition (in/out of scope)
-2. Reward tiers por severidad
-3. Rules of engagement
-4. Submission guidelines
-5. Triage process y SLAs
-6. Safe harbor policy
-7. Hall of Fame
-8. Programa de divulgación responsable
-
-FORMATO: Documento de programa completo.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Application Security Lead**.
-
-Design a **Bug Bounty Program** for:
-- **Application:** {{APP}}
-- **Scope:** {{SCOPE}}
-- **Budget:** {{BUDGET}}
-
-INCLUDE:
-1. Scope definition (in/out of scope)
-2. Reward tiers by severity
-3. Rules of engagement
-4. Submission guidelines
-5. Triage process and SLAs
-6. Safe harbor policy
-7. Hall of Fame
-8. Responsible disclosure program
-
-FORMAT: Complete program document.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['bug-bounty', 'security', 'vulnerability', 'disclosure', 'rewards']
     },
     {
         id: 'api_security_audit',
@@ -1766,290 +1059,59 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'API Security Audit', en: 'API Security Audit' },
         description: { es: 'Revisión de endpoints con auth, rate limiting, input validation.', en: 'Endpoint review with auth, rate limiting, input validation.' },
         prompt: {
-            es: `Actúa como un **API Security Specialist**.
+            es: `Actúa como un **API Security Specialist** con metodología OWASP API Security.
 
-Realiza un **API Security Audit** para:
+Realiza un **API Security Audit** de la API **{{API_URL}}**, construida con **{{FRAMEWORK}}**, dentro del alcance **{{SCOPE}}**.
+
+**Contexto:**
 - **API:** {{API_URL}}
 - **Framework:** {{FRAMEWORK}}
-- **Scope:** {{SCOPE}}
+- **Alcance:** {{SCOPE}}
 
-CHECKLIST:
-1. Authentication (JWT, OAuth, API keys)
-2. Authorization (RBAC, ABAC, IDOR)
-3. Input validation (SQLi, XSS, injection)
-4. Rate limiting y throttling
-5. CORS configuration
-6. Error handling (info leakage)
-7. Data exposure (over-fetching, PII)
-8. Logging y monitoring
+**CHECKLIST A EVALUAR:**
+1. **Authentication**: robustez de JWT/OAuth/API keys.
+2. **Authorization**: RBAC/ABAC y prevención de IDOR.
+3. **Input validation**: SQLi, XSS e inyecciones.
+4. **Rate limiting** y throttling.
+5. **CORS** y políticas de origen.
+6. **Error handling**: fuga de información en respuestas.
+7. **Data exposure**: over-fetching y exposición de PII.
+8. **Logging y monitoring** de actividad sensible.
 
-FORMATO: Reporte con hallazgos, severidad y remediation.
+**FORMATO DE SALIDA:**
+- Reporte con hallazgos por área, severidad y pasos de remediación.
+- Ejemplo de request maliciosa vs segura por hallazgo relevante.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **API Security Specialist**.
+            en: `Act as an **API Security Specialist** with an OWASP API Security methodology.
 
-Perform an **API Security Audit** for:
+Perform an **API Security Audit** of the **{{API_URL}}** API, built with **{{FRAMEWORK}}**, within the **{{SCOPE}}** scope.
+
+**Context:**
 - **API:** {{API_URL}}
 - **Framework:** {{FRAMEWORK}}
 - **Scope:** {{SCOPE}}
 
-CHECKLIST:
-1. Authentication (JWT, OAuth, API keys)
-2. Authorization (RBAC, ABAC, IDOR)
-3. Input validation (SQLi, XSS, injection)
-4. Rate limiting and throttling
-5. CORS configuration
-6. Error handling (info leakage)
-7. Data exposure (over-fetching, PII)
-8. Logging and monitoring
+**CHECKLIST TO EVALUATE:**
+1. **Authentication**: robustness of JWT/OAuth/API keys.
+2. **Authorization**: RBAC/ABAC and IDOR prevention.
+3. **Input validation**: SQLi, XSS, and injections.
+4. **Rate limiting** and throttling.
+5. **CORS** and origin policies.
+6. **Error handling**: information leakage in responses.
+7. **Data exposure**: over-fetching and PII exposure.
+8. **Logging and monitoring** of sensitive activity.
 
-FORMAT: Report with findings, severity, and remediation.
+**OUTPUT FORMAT:**
+- Report with findings per area, severity, and remediation steps.
+- Malicious vs secure request example per relevant finding.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['api', 'security', 'audit', 'authentication', 'authorization']
     },
-    {
-        id: 'mobile_security_audit',
-        category: 'security',
-        icon: '📱',
-        title: { es: 'Mobile Security Audit', en: 'Mobile Security Audit' },
-        description: { es: 'Revisión de seguridad mobile con storage, network y permissions.', en: 'Mobile security review with storage, network, and permissions.' },
-        prompt: {
-            es: `Actúa como un **Mobile Security Engineer**.
-
-Realiza un **Mobile Security Audit** para:
-- **Plataforma:** {{PLATFORM}}
-- **Framework:** {{FRAMEWORK}}
-- **Scope:** {{SCOPE}}
-
-CHECKLIST OWASP MASVS:
-1. Storage (keychain/keystore, SQLite, files)
-2. Crypto (algorithms, key management)
-3. Auth (biometrics, session, tokens)
-4. Network (TLS pinning, cert validation)
-5. Platform interaction (permissions, intents)
-6. Code quality (obfuscation, debugging)
-7. Resilience (root/jailbreak detection, tampering)
-8. Privacy (data collection, consent)
-
-FORMATO: Reporte con hallazgos y remediation.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Mobile Security Engineer**.
-
-Perform a **Mobile Security Audit** for:
-- **Platform:** {{PLATFORM}}
-- **Framework:** {{FRAMEWORK}}
-- **Scope:** {{SCOPE}}
-
-OWASP MASVS CHECKLIST:
-1. Storage (keychain/keystore, SQLite, files)
-2. Crypto (algorithms, key management)
-3. Auth (biometrics, session, tokens)
-4. Network (TLS pinning, cert validation)
-5. Platform interaction (permissions, intents)
-6. Code quality (obfuscation, debugging)
-7. Resilience (root/jailbreak detection, tampering)
-8. Privacy (data collection, consent)
-
-FORMAT: Report with findings and remediation.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['mobile', 'security', 'audit', 'owasp', 'masvs']
-    },
-    {
-        id: 'cloud_infra_audit',
-        category: 'security',
-        icon: '☁️',
-        title: { es: 'Cloud Infrastructure Audit', en: 'Cloud Infrastructure Audit' },
-        description: { es: 'Revisión de cloud config con IAM, networking y encryption.', en: 'Cloud config review with IAM, networking, and encryption.' },
-        prompt: {
-            es: `Actúa como un **Cloud Security Engineer**.
-
-Realiza un **Cloud Infrastructure Audit** para:
-- **Cloud Provider:** {{CLOUD}}
-- **Servicios:** {{SERVICES}}
-- **Compliance:** {{COMPLIANCE}}
-
-CHECKLIST:
-1. IAM (least privilege, MFA, roles, policies)
-2. Networking (security groups, NACLs, VPC)
-3. Storage (encryption, public access, versioning)
-4. Compute (hardening, patching, monitoring)
-5. Database (encryption, backups, access)
-6. Logging (CloudTrail, audit logs, retention)
-7. Compliance (CIS Benchmarks, Well-Architected)
-8. Cost anomalies como indicador de compromiso
-
-FORMATO: Reporte con scoring y remediation prioritizada.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Cloud Security Engineer**.
-
-Perform a **Cloud Infrastructure Audit** for:
-- **Cloud Provider:** {{CLOUD}}
-- **Services:** {{SERVICES}}
-- **Compliance:** {{COMPLIANCE}}
-
-CHECKLIST:
-1. IAM (least privilege, MFA, roles, policies)
-2. Networking (security groups, NACLs, VPC)
-3. Storage (encryption, public access, versioning)
-4. Compute (hardening, patching, monitoring)
-5. Database (encryption, backups, access)
-6. Logging (CloudTrail, audit logs, retention)
-7. Compliance (CIS Benchmarks, Well-Architected)
-8. Cost anomalies as compromise indicator
-
-FORMAT: Report with scoring and prioritized remediation.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['cloud', 'security', 'audit', 'iam', 'compliance']
-    },
-
     // ─── Writing Extended ─────────────────────────────────────────────────────
 
-    {
-        id: 'developer_onboarding',
-        category: 'writing',
-        icon: '🚪',
-        title: { es: 'Developer Onboarding Guide', en: 'Developer Onboarding Guide' },
-        description: { es: 'Guía de onboarding para nuevos desarrolladores con setup y primeros pasos.', en: 'Onboarding guide for new developers with setup and first steps.' },
-        prompt: {
-            es: `Actúa como un **Engineering Manager**.
-
-Crea una **Developer Onboarding Guide** para:
-- **Proyecto:** {{PROJECT}}
-- **Stack:** {{STACK}}
-- **Equipo:** {{TEAM}}
-
-SECCIONES:
-1. Welcome & team intro
-2. Development environment setup (paso a paso)
-3. Project structure walkthrough
-4. First task (good first issue)
-5. Code review process
-6. CI/CD overview
-7. Communication channels y rituals
-8. Resources y documentación
-
-FORMATO: Markdown con checklists y comandos copy-paste.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Engineering Manager**.
-
-Create a **Developer Onboarding Guide** for:
-- **Project:** {{PROJECT}}
-- **Stack:** {{STACK}}
-- **Team:** {{TEAM}}
-
-SECTIONS:
-1. Welcome & team intro
-2. Development environment setup (step by step)
-3. Project structure walkthrough
-4. First task (good first issue)
-5. Code review process
-6. CI/CD overview
-7. Communication channels and rituals
-8. Resources and documentation
-
-FORMAT: Markdown with checklists and copy-paste commands.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['onboarding', 'developer', 'guide', 'setup', 'team']
-    },
-    {
-        id: 'operational_runbook',
-        category: 'writing',
-        icon: '📖',
-        title: { es: 'Runbook Operacional', en: 'Operational Runbook' },
-        description: { es: 'Procedimientos operacionales para incidentes y mantenimiento.', en: 'Operational procedures for incidents and maintenance.' },
-        prompt: {
-            es: `Actúa como un **Senior SRE**.
-
-Crea un **Runbook Operacional** para:
-- **Sistema:** {{SYSTEM}}
-- **Escenarios:** {{SCENARIOS}}
-- **Herramientas:** {{TOOLS}}
-
-INCLUYE:
-1. Service overview y dependencias
-2. Common incidents y resolución
-3. Maintenance procedures
-4. Escalation paths
-5. Contact list
-6. Monitoring dashboards
-7. Backup/restore procedures
-8. Post-incident review template
-
-FORMATO: Runbook con pasos numerados.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior SRE**.
-
-Create an **Operational Runbook** for:
-- **System:** {{SYSTEM}}
-- **Scenarios:** {{SCENARIOS}}
-- **Tools:** {{TOOLS}}
-
-INCLUDE:
-1. Service overview and dependencies
-2. Common incidents and resolution
-3. Maintenance procedures
-4. Escalation paths
-5. Contact list
-6. Monitoring dashboards
-7. Backup/restore procedures
-8. Post-incident review template
-
-FORMAT: Runbook with numbered steps.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['runbook', 'operations', 'sre', 'incidents', 'maintenance']
-    },
-    {
-        id: 'api_migration_guide',
-        category: 'writing',
-        icon: '🔄',
-        title: { es: 'API Migration Guide (v1→v2)', en: 'API Migration Guide (v1→v2)' },
-        description: { es: 'Guía de migración de API con breaking changes y ejemplos.', en: 'API migration guide with breaking changes and examples.' },
-        prompt: {
-            es: `Actúa como un **API Platform Engineer**.
-
-Crea una **API Migration Guide** para:
-- **API:** {{API}}
-- **Versiones:** {{VERSIONS}}
-- **Fecha de deprecación:** {{DEPRECATION}}
-
-INCLUYE:
-1. Overview de cambios (breaking vs non-breaking)
-2. Breaking changes detallados con ejemplos before/after
-3. Deprecation timeline
-4. Código de migración por lenguaje
-5. FAQ y troubleshooting
-6. Support channels
-7. Backwards compatibility notes
-8. Automated migration tools si existen
-
-FORMATO: Markdown con tablas comparativas y snippets.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **API Platform Engineer**.
-
-Create an **API Migration Guide** for:
-- **API:** {{API}}
-- **Versions:** {{VERSIONS}}
-- **Deprecation date:** {{DEPRECATION}}
-
-INCLUDE:
-1. Changes overview (breaking vs non-breaking)
-2. Detailed breaking changes with before/after examples
-3. Deprecation timeline
-4. Migration code per language
-5. FAQ and troubleshooting
-6. Support channels
-7. Backwards compatibility notes
-8. Automated migration tools if available
-
-FORMAT: Markdown with comparison tables and snippets.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['api', 'migration', 'breaking-changes', 'deprecation', 'developer-experience']
-    },
     {
         id: 'incident_postmortem',
         category: 'writing',
@@ -2057,254 +1119,54 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Postmortem de Incidente', en: 'Incident Postmortem' },
         description: { es: 'Reporte de postmortem blameless con timeline, root cause y action items.', en: 'Blameless postmortem report with timeline, root cause, and action items.' },
         prompt: {
-            es: `Actúa como un **Incident Commander**.
+            es: `Actúa como un **Incident Commander** que lidera la cultura blameless en su organización.
 
-Escribe un **Postmortem de Incidente** para:
+Escribe un **Postmortem de Incidente** para el incidente **{{INCIDENT}}**, cuyo impacto fue **{{IMPACT}}**, usando la línea temporal **{{TIMELINE}}** como base.
+
+**Contexto:**
 - **Incidente:** {{INCIDENT}}
 - **Impacto:** {{IMPACT}}
 - **Timeline:** {{TIMELINE}}
 
-SECCIONES:
-1. Summary (qué pasó, impacto, duración)
-2. Timeline detallada (detección → respuesta → resolución)
-3. Root cause analysis (5 Whys)
-4. What went well
-5. What went wrong
-6. Where we got lucky
-7. Action items con owner y deadline
-8. Lessons learned
+**SECCIONES OBLIGATORIAS:**
+1. **Summary**: qué pasó, impacto y duración.
+2. **Timeline** detallada: detección → respuesta → resolución.
+3. **Root Cause Analysis**: análisis con los 5 Whys.
+4. **What went well**.
+5. **What went wrong**.
+6. **Where we got lucky**.
+7. **Action items**: con owner y deadline.
+8. **Lessons learned** y recomendaciones.
 
-TONO: Blameless, objetivo, orientado a mejora.
-FORMATO: Markdown con tablas.
+**FORMATO DE SALIDA:**
+- Markdown con tablas, tono blameless y orientado a mejora continua.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Incident Commander**.
+            en: `Act as an **Incident Commander** driving a blameless culture in your organization.
 
-Write an **Incident Postmortem** for:
+Write an **Incident Postmortem** for the incident **{{INCIDENT}}**, whose impact was **{{IMPACT}}**, using the **{{TIMELINE}}** timeline as a basis.
+
+**Context:**
 - **Incident:** {{INCIDENT}}
 - **Impact:** {{IMPACT}}
 - **Timeline:** {{TIMELINE}}
 
-SECTIONS:
-1. Summary (what happened, impact, duration)
-2. Detailed timeline (detection → response → resolution)
-3. Root cause analysis (5 Whys)
-4. What went well
-5. What went wrong
-6. Where we got lucky
-7. Action items with owner and deadline
-8. Lessons learned
+**REQUIRED SECTIONS:**
+1. **Summary**: what happened, impact, and duration.
+2. Detailed **Timeline**: detection → response → resolution.
+3. **Root Cause Analysis**: analysis using the 5 Whys.
+4. **What went well**.
+5. **What went wrong**.
+6. **Where we got lucky**.
+7. **Action items**: with owner and deadline.
+8. **Lessons learned** and recommendations.
 
-TONE: Blameless, objective, improvement-oriented.
-FORMAT: Markdown with tables.
+**OUTPUT FORMAT:**
+- Markdown with tables, blameless tone, and continuous improvement focus.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['postmortem', 'incident', 'blameless', 'root-cause', 'sre']
-    },
-    {
-        id: 'contributing_guide',
-        category: 'writing',
-        icon: '🤝',
-        title: { es: 'CONTRIBUTING.md', en: 'CONTRIBUTING.md' },
-        description: { es: 'Guidelines de contribución para proyectos open source.', en: 'Contribution guidelines for open source projects.' },
-        prompt: {
-            es: `Actúa como un **Open Source Maintainer**.
-
-Crea un **CONTRIBUTING.md** para:
-- **Proyecto:** {{PROJECT}}
-- **Lenguaje:** {{LANGUAGE}}
-- **Convenciones:** {{CONVENTIONS}}
-
-SECCIONES:
-1. Welcome y code of conduct
-2. How to contribute (issues, PRs, discussions)
-3. Development setup
-4. Coding standards y style guide
-5. Commit message convention
-6. Testing requirements
-7. PR process y review checklist
-8. Release process
-
-FORMATO: Markdown con emojis y ejemplos.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Open Source Maintainer**.
-
-Create a **CONTRIBUTING.md** for:
-- **Project:** {{PROJECT}}
-- **Language:** {{LANGUAGE}}
-- **Conventions:** {{CONVENTIONS}}
-
-SECTIONS:
-1. Welcome and code of conduct
-2. How to contribute (issues, PRs, discussions)
-3. Development setup
-4. Coding standards and style guide
-5. Commit message convention
-6. Testing requirements
-7. PR process and review checklist
-8. Release process
-
-FORMAT: Markdown with emojis and examples.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['contributing', 'open-source', 'guidelines', 'community', 'github']
-    },
-    {
-        id: 'architecture_overview',
-        category: 'writing',
-        icon: '🏗️',
-        title: { es: 'Architecture Overview Document', en: 'Architecture Overview Document' },
-        description: { es: 'Documento de arquitectura de alto nivel con diagramas y decisiones.', en: 'High-level architecture document with diagrams and decisions.' },
-        prompt: {
-            es: `Actúa como un **Principal Software Architect**.
-
-Crea un **Architecture Overview Document** para:
-- **Sistema:** {{SYSTEM}}
-- **Componentes:** {{COMPONENTS}}
-- **Audiencia:** {{AUDIENCE}}
-
-SECCIONES:
-1. System context y scope
-2. Architecture principles
-3. Component diagram (descripción textual)
-4. Data flow
-5. Technology decisions con justificación
-6. Non-functional requirements
-7. Scalability y resilience
-8. Security considerations
-9. Deployment topology
-10. Future evolution
-
-FORMATO: Documento técnico con Mermaid diagrams.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Principal Software Architect**.
-
-Create an **Architecture Overview Document** for:
-- **System:** {{SYSTEM}}
-- **Components:** {{COMPONENTS}}
-- **Audience:** {{AUDIENCE}}
-
-SECTIONS:
-1. System context and scope
-2. Architecture principles
-3. Component diagram (textual description)
-4. Data flow
-5. Technology decisions with justification
-6. Non-functional requirements
-7. Scalability and resilience
-8. Security considerations
-9. Deployment topology
-10. Future evolution
-
-FORMAT: Technical document with Mermaid diagrams.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['architecture', 'overview', 'design', 'documentation', 'system']
-    },
-    {
-        id: 'decision_log',
-        category: 'writing',
-        icon: '📋',
-        title: { es: 'Decision Log (Lightweight ADR)', en: 'Decision Log (Lightweight ADR)' },
-        description: { es: 'Registro ligero de decisiones técnicas con contexto y estado.', en: 'Lightweight technical decision log with context and status.' },
-        prompt: {
-            es: `Actúa como un **Tech Lead**.
-
-Crea un **Decision Log** para:
-- **Proyecto:** {{PROJECT}}
-- **Decisión:** {{DECISION}}
-- **Estado:** {{STATUS}}
-
-FORMATO por decisión:
-1. **ID**: DEC-001
-2. **Título**: Decisión tomada
-3. **Estado**: Proposed | Accepted | Deprecated | Superseded
-4. **Contexto**: Por qué necesitamos decidir
-5. **Decisión**: Qué decidimos
-6. **Consecuencias**: Impacto positivo y negativo
-7. **Alternativas**: Qué más consideramos
-8. **Fecha y autores**
-
-INCLUYE: Template + 3 ejemplos realistas.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Tech Lead**.
-
-Create a **Decision Log** for:
-- **Project:** {{PROJECT}}
-- **Decision:** {{DECISION}}
-- **Status:** {{STATUS}}
-
-FORMAT per decision:
-1. **ID**: DEC-001
-2. **Title**: Decision made
-3. **Status**: Proposed | Accepted | Deprecated | Superseded
-4. **Context**: Why we need to decide
-5. **Decision**: What we decided
-6. **Consequences**: Positive and negative impact
-7. **Alternatives**: What else we considered
-8. **Date and authors**
-
-INCLUDE: Template + 3 realistic examples.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['decisions', 'adr', 'log', 'technical', 'documentation']
-    },
-    {
-        id: 'email_sequence',
-        category: 'writing',
-        icon: '📧',
-        title: { es: 'Email Marketing Sequence', en: 'Email Marketing Sequence' },
-        description: { es: 'Secuencia de emails con onboarding, nurture y re-engagement.', en: 'Email sequence with onboarding, nurture, and re-engagement.' },
-        prompt: {
-            es: `Actúa como un **Email Marketing Strategist**.
-
-Crea una **Email Sequence** para:
-- **Producto:** {{PRODUCT}}
-- **Audiencia:** {{AUDIENCE}}
-- **Objetivo:** {{GOAL}}
-
-SECUENCIA:
-1. Welcome email (día 0)
-2. Value delivery (día 2)
-3. Social proof (día 5)
-4. Soft CTA (día 8)
-5. Hard CTA (día 12)
-6. Re-engagement (día 21)
-
-POR EMAIL:
-- Subject line (3 variantes)
-- Preview text
-- Body copy
-- CTA
-- Personalización tokens
-
-FORMATO: Email copy completo con notas estratégicas.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Email Marketing Strategist**.
-
-Create an **Email Sequence** for:
-- **Product:** {{PRODUCT}}
-- **Audience:** {{AUDIENCE}}
-- **Goal:** {{GOAL}}
-
-SEQUENCE:
-1. Welcome email (day 0)
-2. Value delivery (day 2)
-3. Social proof (day 5)
-4. Soft CTA (day 8)
-5. Hard CTA (day 12)
-6. Re-engagement (day 21)
-
-PER EMAIL:
-- Subject line (3 variants)
-- Preview text
-- Body copy
-- CTA
-- Personalization tokens
-
-FORMAT: Complete email copy with strategic notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['email', 'marketing', 'sequence', 'copywriting', 'conversion']
     },
     {
         id: 'landing_page_copy',
@@ -2313,102 +1175,57 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Landing Page Copy', en: 'Landing Page Copy' },
         description: { es: 'Copy de landing page con hook, beneficios, social proof y CTA.', en: 'Landing page copy with hook, benefits, social proof, and CTA.' },
         prompt: {
-            es: `Actúa como un **Conversion Copywriter**.
+            es: `Actúa como un **Conversion Copywriter** con experiencia en landing pages de alto rendimiento.
 
-Escribe el **Copy de Landing Page** para:
+Redacta el **Copy de Landing Page** para **{{PRODUCT}}**, dirigido a **{{AUDIENCE}}**, con el objetivo de conversión **{{CTA_GOAL}}**.
+
+**Contexto:**
 - **Producto:** {{PRODUCT}}
 - **Audiencia:** {{AUDIENCE}}
-- **CTA Goal:** {{CTA_GOAL}}
+- **Objetivo del CTA:** {{CTA_GOAL}}
 
-SECCIONES:
-1. Hero (headline + subheadline + CTA)
-2. Problem agitation
-3. Solution presentation
-4. Key benefits (3-5)
-5. Social proof (testimonials, logos, metrics)
-6. How it works (3 pasos)
-7. FAQ (objeciones comunes)
-8. Final CTA
+**SECCIONES:**
+1. **Hero**: headline + subheadline + CTA principal.
+2. **Problem agitation**: dolor del usuario agudizado.
+3. **Solution**: presentación clara de {{PRODUCT}}.
+4. **Key benefits** (3-5).
+5. **Social proof**: testimonios, logos o métricas.
+6. **How it works** en 3 pasos.
+7. **FAQ** con objeciones comunes.
+8. **Final CTA** orientado a {{CTA_GOAL}}.
 
-REQUISITOS: Copy persuasivo, scannable, orientado a conversión.
-FORMATO: Markdown con notas de diseño.
+**FORMATO DE SALIDA:**
+- Copy completo en Markdown con notas de diseño por sección.
+- Copy persuasivo, scannable y orientado a conversión.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Conversion Copywriter**.
+            en: `Act as a **Conversion Copywriter** experienced in high-performance landing pages.
 
-Write the **Landing Page Copy** for:
+Draft the **Landing Page Copy** for **{{PRODUCT}}**, aimed at **{{AUDIENCE}}**, with the conversion goal of **{{CTA_GOAL}}**.
+
+**Context:**
 - **Product:** {{PRODUCT}}
 - **Audience:** {{AUDIENCE}}
-- **CTA Goal:** {{CTA_GOAL}}
+- **CTA goal:** {{CTA_GOAL}}
 
-SECTIONS:
-1. Hero (headline + subheadline + CTA)
-2. Problem agitation
-3. Solution presentation
-4. Key benefits (3-5)
-5. Social proof (testimonials, logos, metrics)
-6. How it works (3 steps)
-7. FAQ (common objections)
-8. Final CTA
+**SECTIONS:**
+1. **Hero**: headline + subheadline + main CTA.
+2. **Problem agitation**: escalate the user's pain.
+3. **Solution**: clear presentation of {{PRODUCT}}.
+4. **Key benefits** (3-5).
+5. **Social proof**: testimonials, logos, or metrics.
+6. **How it works** in 3 steps.
+7. **FAQ** covering common objections.
+8. **Final CTA** aimed at {{CTA_GOAL}}.
 
-REQUIREMENTS: Persuasive copy, scannable, conversion-oriented.
-FORMAT: Markdown with design notes.
+**OUTPUT FORMAT:**
+- Complete copy in Markdown with design notes per section.
+- Persuasive, scannable, conversion-oriented copy.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['landing-page', 'copywriting', 'conversion', 'marketing', 'persuasion']
     },
-    {
-        id: 'seo_content_brief',
-        category: 'writing',
-        icon: '🔍',
-        title: { es: 'SEO Content Brief', en: 'SEO Content Brief' },
-        description: { es: 'Brief de contenido optimizado para SEO con keywords y estructura.', en: 'SEO-optimized content brief with keywords and structure.' },
-        prompt: {
-            es: `Actúa como un **SEO Content Strategist**.
-
-Crea un **SEO Content Brief** para:
-- **Tema:** {{TOPIC}}
-- **Keywords objetivo:** {{KEYWORDS}}
-- **Competidores:** {{COMPETITORS}}
-
-INCLUYE:
-1. Target keyword + secondary keywords
-2. Search intent analysis
-3. Suggested title (SEO-optimized)
-4. Meta description
-5. URL slug
-6. Content outline con H2/H3
-7. Word count recommendation
-8. Internal linking suggestions
-9. Featured snippet optimization
-10. Schema markup suggestions
-
-FORMATO: Brief estructurado con tablas.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **SEO Content Strategist**.
-
-Create an **SEO Content Brief** for:
-- **Topic:** {{TOPIC}}
-- **Target keywords:** {{KEYWORDS}}
-- **Competitors:** {{COMPETITORS}}
-
-INCLUDE:
-1. Target keyword + secondary keywords
-2. Search intent analysis
-3. Suggested title (SEO-optimized)
-4. Meta description
-5. URL slug
-6. Content outline with H2/H3
-7. Word count recommendation
-8. Internal linking suggestions
-9. Featured snippet optimization
-10. Schema markup suggestions
-
-FORMAT: Structured brief with tables.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['seo', 'content', 'brief', 'keywords', 'structure']
-    },
-
     // ─── Business Extended ────────────────────────────────────────────────────
 
     {
@@ -2418,146 +1235,52 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'User Story Map', en: 'User Story Map' },
         description: { es: 'Mapeo visual de user stories con backbone, épicas y slicing.', en: 'Visual user story mapping with backbone, epics, and slicing.' },
         prompt: {
-            es: `Actúa como un **Senior Product Manager**.
+            es: `Actúa como un **Senior Product Manager** especializado en discovery y planning ágil.
 
-Crea un **User Story Map** para:
+Crea un **User Story Map** para **{{PRODUCT}}**, pensado para los usuarios **{{USERS}}** y las releases **{{RELEASES}}**.
+
+**Contexto:**
 - **Producto:** {{PRODUCT}}
-- **Usuarios:** {{USERS}}
-- **Releases:** {{RELEASES}}
+- **Usuarios/roles:** {{USERS}}
+- **Enfoque de releases:** {{RELEASES}}
 
-INCLUYE:
-1. Backbone (actividades principales del usuario)
-2. Tasks bajo cada actividad
-3. User stories detalladas con formato "Como [rol], quiero [acción] para [beneficio]"
-4. Release slicing (v1 MVP, v2, v3)
-5. Priorización (Must/Should/Could)
-6. Acceptance criteria por story
-7. Dependencies entre stories
-8. Estimación de esfuerzo (T-shirt sizes)
+**REQUISITOS:**
+1. Backbone con las actividades principales de {{USERS}}.
+2. Tasks bajo cada actividad.
+3. User stories en formato "Como [rol], quiero [acción] para [beneficio]".
+4. Release slicing y priorización (Must/Should/Could).
+5. Acceptance criteria por story.
+6. Dependencias entre stories.
+7. Estimación de esfuerzo (T-shirt sizes).
 
-FORMATO: Tabla markdown con niveles jerárquicos.
+**FORMATO DE SALIDA:**
+- Tabla Markdown jerárquica (backbone → tasks → stories).
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Product Manager**.
+            en: `Act as a **Senior Product Manager** specialized in discovery and agile planning.
 
-Create a **User Story Map** for:
+Create a **User Story Map** for **{{PRODUCT}}**, designed for the users **{{USERS}}** and the releases **{{RELEASES}}**.
+
+**Context:**
 - **Product:** {{PRODUCT}}
-- **Users:** {{USERS}}
-- **Releases:** {{RELEASES}}
+- **Users/roles:** {{USERS}}
+- **Release approach:** {{RELEASES}}
 
-INCLUDE:
-1. Backbone (main user activities)
-2. Tasks under each activity
-3. Detailed user stories with "As [role], I want [action] to [benefit]"
-4. Release slicing (v1 MVP, v2, v3)
-5. Prioritization (Must/Should/Could)
-6. Acceptance criteria per story
-7. Dependencies between stories
-8. Effort estimation (T-shirt sizes)
+**REQUIREMENTS:**
+1. Backbone with the main activities of {{USERS}}.
+2. Tasks under each activity.
+3. User stories in "As [role], I want [action] to [benefit]" format.
+4. Release slicing and prioritization (Must/Should/Could).
+5. Acceptance criteria per story.
+6. Dependencies between stories.
+7. Effort estimation (T-shirt sizes).
 
-FORMAT: Markdown table with hierarchical levels.
+**OUTPUT FORMAT:**
+- Hierarchical Markdown table (backbone → tasks → stories).
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['user-stories', 'mapping', 'agile', 'product', 'backlog']
-    },
-    {
-        id: 'competitor_matrix',
-        category: 'business',
-        icon: '⚖️',
-        title: { es: 'Competitor Feature Matrix', en: 'Competitor Feature Matrix' },
-        description: { es: 'Matriz comparativa de features con competidores.', en: 'Feature comparison matrix with competitors.' },
-        prompt: {
-            es: `Actúa como un **Product Strategist**.
-
-Crea una **Competitor Feature Matrix** para:
-- **Producto:** {{PRODUCT}}
-- **Competidores:** {{COMPETITORS}}
-- **Features a comparar:** {{FEATURES}}
-
-INCLUYE:
-1. Tabla comparativa con checkmarks
-2. Feature gap analysis
-3. Pricing comparison
-4. Target audience comparison
-5. SWOT por competidor
-6. Unique value proposition de nuestro producto
-7. Feature prioritization recommendation
-8. Market positioning map
-
-FORMATO: Tablas markdown + análisis estratégico.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Product Strategist**.
-
-Create a **Competitor Feature Matrix** for:
-- **Product:** {{PRODUCT}}
-- **Competitors:** {{COMPETITORS}}
-- **Features to compare:** {{FEATURES}}
-
-INCLUDE:
-1. Comparison table with checkmarks
-2. Feature gap analysis
-3. Pricing comparison
-4. Target audience comparison
-5. SWOT per competitor
-6. Our product's unique value proposition
-7. Feature prioritization recommendation
-8. Market positioning map
-
-FORMAT: Markdown tables + strategic analysis.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['competitor', 'matrix', 'analysis', 'strategy', 'features']
-    },
-    {
-        id: 'risk_register',
-        category: 'business',
-        icon: '⚠️',
-        title: { es: 'Risk Register', en: 'Risk Register' },
-        description: { es: 'Registro de riesgos con probabilidad, impacto y mitigación.', en: 'Risk register with probability, impact, and mitigation.' },
-        prompt: {
-            es: `Actúa como un **Project Risk Manager**.
-
-Crea un **Risk Register** para:
-- **Proyecto:** {{PROJECT}}
-- **Riesgos identificados:** {{RISKS}}
-- **Plan de mitigación:** {{MITIGATION}}
-
-INCLUYE:
-1. Risk ID y descripción
-2. Categoría (técnico, negocio, externo, organizacional)
-3. Probabilidad (1-5)
-4. Impacto (1-5)
-5. Risk score (P × I)
-6. Owner asignado
-7. Mitigation strategy
-8. Contingency plan
-9. Status (open, monitoring, closed)
-10. Review date
-
-FORMATO: Tabla con heatmap de riesgos.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Project Risk Manager**.
-
-Create a **Risk Register** for:
-- **Project:** {{PROJECT}}
-- **Identified risks:** {{RISKS}}
-- **Mitigation plan:** {{MITIGATION}}
-
-INCLUDE:
-1. Risk ID and description
-2. Category (technical, business, external, organizational)
-3. Probability (1-5)
-4. Impact (1-5)
-5. Risk score (P × I)
-6. Assigned owner
-7. Mitigation strategy
-8. Contingency plan
-9. Status (open, monitoring, closed)
-10. Review date
-
-FORMAT: Table with risk heatmap.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['risk', 'register', 'management', 'project', 'mitigation']
     },
     {
         id: 'okr_template',
@@ -2566,98 +1289,54 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'OKR Template', en: 'OKR Template' },
         description: { es: 'Objetivos y Key Results con métricas y checkpoints.', en: 'Objectives and Key Results with metrics and checkpoints.' },
         prompt: {
-            es: `Actúa como un **OKR Coach**.
+            es: `Actúa como un **OKR Coach** con método y pragmatismo.
 
-Crea un **OKR Template** para:
+Crea un **OKR Template** para el equipo **{{TEAM}}** para el quarter **{{QUARTER}}**, a partir de los objetivos **{{OBJECTIVES}}**.
+
+**Contexto:**
 - **Equipo:** {{TEAM}}
 - **Quarter:** {{QUARTER}}
-- **Objetivos:** {{OBJECTIVES}}
+- **Objetivos planteados:** {{OBJECTIVES}}
 
-INCLUYE:
-1. 3-5 Objectives (inspiracionales, cualitativos)
-2. 3-5 Key Results por objetivo (medibles, cuantitativos)
-3. Baseline y target por KR
-4. Initiatives para cada KR
-5. Owner por KR
-6. Checkpoint schedule (weekly/biweekly)
-7. Confidence scoring (1-10)
-8. Retrospective template
+**REQUISITOS:**
+1. 3-5 Objectives inspiradores y cualitativos.
+2. 2-5 Key Results medibles por objetivo.
+3. Baseline y target por cada Key Result.
+4. Initiatives concretas por Key Result.
+5. Owner asignado por Key Result.
+6. Calendario de checkpoints y confidence scoring (1-10).
+7. Template de retrospective.
 
-FORMATO: Tabla con progress tracking.
+**FORMATO DE SALIDA:**
+- Tabla Markdown con columnas de progress tracking.
+- Notas de método para mantener el foco en {{OBJECTIVES}}.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **OKR Coach**.
+            en: `Act as an **OKR Coach** with method and pragmatism.
 
-Create an **OKR Template** for:
+Create an **OKR Template** for the **{{TEAM}}** team for the **{{QUARTER}}** quarter, based on the objectives **{{OBJECTIVES}}**.
+
+**Context:**
 - **Team:** {{TEAM}}
 - **Quarter:** {{QUARTER}}
-- **Objectives:** {{OBJECTIVES}}
+- **Proposed objectives:** {{OBJECTIVES}}
 
-INCLUDE:
-1. 3-5 Objectives (inspirational, qualitative)
-2. 3-5 Key Results per objective (measurable, quantitative)
-3. Baseline and target per KR
-4. Initiatives for each KR
-5. Owner per KR
-6. Checkpoint schedule (weekly/biweekly)
-7. Confidence scoring (1-10)
-8. Retrospective template
+**REQUIREMENTS:**
+1. 3-5 inspirational, qualitative objectives.
+2. 2-5 measurable key results per objective.
+3. Baseline and target per key result.
+4. Concrete initiatives per key result.
+5. Owner assigned per key result.
+6. Checkpoint schedule and confidence scoring (1-10).
+7. Retrospective template.
 
-FORMAT: Table with progress tracking.
+**OUTPUT FORMAT:**
+- Markdown table with progress tracking columns.
+- Method notes to stay focused on {{OBJECTIVES}}.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['okr', 'goals', 'metrics', 'quarterly', 'tracking']
-    },
-    {
-        id: 'tech_debt_register',
-        category: 'business',
-        icon: '📚',
-        title: { es: 'Technical Debt Register', en: 'Technical Debt Register' },
-        description: { es: 'Registro de deuda técnica con priorización y plan de pago.', en: 'Technical debt register with prioritization and paydown plan.' },
-        prompt: {
-            es: `Actúa como un **Engineering Manager**.
-
-Crea un **Technical Debt Register** para:
-- **Proyecto:** {{PROJECT}}
-- **Items de deuda:** {{DEBT}}
-- **Prioridad:** {{PRIORITY}}
-
-INCLUYE:
-1. Debt ID y descripción
-2. Tipo (code, design, test, infra, docs)
-3. Impacto (bajo, medio, alto, crítico)
-4. Esfuerzo de remediation (S/M/L/XL)
-5. Root cause
-6. Business impact
-7. Remediation plan
-8. Target sprint/quarter
-9. Owner
-10. Status
-
-FORMATO: Tabla con plan de paydown por sprint.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Engineering Manager**.
-
-Create a **Technical Debt Register** for:
-- **Project:** {{PROJECT}}
-- **Debt items:** {{DEBT}}
-- **Priority:** {{PRIORITY}}
-
-INCLUDE:
-1. Debt ID and description
-2. Type (code, design, test, infra, docs)
-3. Impact (low, medium, high, critical)
-4. Remediation effort (S/M/L/XL)
-5. Root cause
-6. Business impact
-7. Remediation plan
-8. Target sprint/quarter
-9. Owner
-10. Status
-
-FORMAT: Table with paydown plan per sprint.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['tech-debt', 'register', 'engineering', 'prioritization', 'quality']
     },
     {
         id: 'gtm_plan',
@@ -2666,148 +1345,57 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Go-to-Market Plan', en: 'Go-to-Market Plan' },
         description: { es: 'Plan de lanzamiento con canales, messaging y timeline.', en: 'Launch plan with channels, messaging, and timeline.' },
         prompt: {
-            es: `Actúa como un **GTM Strategist**.
+            es: `Actúa como un **GTM Strategist** con experiencia en lanzamientos de producto.
 
-Crea un **Go-to-Market Plan** para:
+Crea un **Go-to-Market Plan** completo para **{{PRODUCT}}** en el mercado **{{MARKET}}**, con fecha de lanzamiento objetivo **{{LAUNCH_DATE}}**.
+
+**Contexto:**
 - **Producto:** {{PRODUCT}}
 - **Mercado:** {{MARKET}}
 - **Fecha de lanzamiento:** {{LAUNCH_DATE}}
 
-INCLUYE:
-1. Target market y buyer personas
-2. Value proposition y messaging
-3. Pricing strategy
-4. Channel strategy (paid, organic, partnerships)
-5. Launch timeline (pre-launch, launch, post-launch)
-6. Sales enablement materials
-7. Marketing campaigns plan
-8. Success metrics y KPIs
-9. Budget allocation
-10. Risk mitigation
+**REQUISITOS:**
+1. Análisis del mercado y buyer personas.
+2. Value proposition y messaging por segmento.
+3. Pricing strategy.
+4. Estrategia de canales (paid, organic, partnerships).
+5. Timeline de lanzamiento: pre-launch, launch y post-launch para {{LAUNCH_DATE}}.
+6. Sales enablement materials.
+7. Plan de campañas de marketing.
+8. Métricas de éxito y KPIs.
+9. Budget allocation y risk mitigation.
 
-FORMATO: Plan estratégico con timeline.
+**FORMATO DE SALIDA:**
+- Plan estratégico en Markdown con timeline y owner por iniciativa.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **GTM Strategist**.
+            en: `Act as a **GTM Strategist** experienced in product launches.
 
-Create a **Go-to-Market Plan** for:
+Create a complete **Go-to-Market Plan** for **{{PRODUCT}}** in the **{{MARKET}}** market, with a target launch date of **{{LAUNCH_DATE}}**.
+
+**Context:**
 - **Product:** {{PRODUCT}}
 - **Market:** {{MARKET}}
 - **Launch date:** {{LAUNCH_DATE}}
 
-INCLUDE:
-1. Target market and buyer personas
-2. Value proposition and messaging
-3. Pricing strategy
-4. Channel strategy (paid, organic, partnerships)
-5. Launch timeline (pre-launch, launch, post-launch)
-6. Sales enablement materials
-7. Marketing campaigns plan
-8. Success metrics and KPIs
-9. Budget allocation
-10. Risk mitigation
+**REQUIREMENTS:**
+1. Market analysis and buyer personas.
+2. Value proposition and messaging per segment.
+3. Pricing strategy.
+4. Channel strategy (paid, organic, partnerships).
+5. Launch timeline: pre-launch, launch, and post-launch for {{LAUNCH_DATE}}.
+6. Sales enablement materials.
+7. Marketing campaigns plan.
+8. Success metrics and KPIs.
+9. Budget allocation and risk mitigation.
 
-FORMAT: Strategic plan with timeline.
+**OUTPUT FORMAT:**
+- Strategic plan in Markdown with timeline and owner per initiative.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['gtm', 'launch', 'marketing', 'strategy', 'sales']
     },
-    {
-        id: 'sprint_planning',
-        category: 'business',
-        icon: '📅',
-        title: { es: 'Sprint Planning Template', en: 'Sprint Planning Template' },
-        description: { es: 'Template de sprint con capacity, stories y goals.', en: 'Sprint template with capacity, stories, and goals.' },
-        prompt: {
-            es: `Actúa como un **Scrum Master**.
-
-Crea un **Sprint Planning Template** para:
-- **Equipo:** {{TEAM}}
-- **Sprint:** {{SPRINT}}
-- **Capacity:** {{CAPACITY}}
-
-INCLUYE:
-1. Sprint goal
-2. Team capacity (vacaciones, holidays)
-3. Velocity history
-4. Selected user stories con story points
-5. Task breakdown por story
-6. Definition of Ready / Done
-7. Risk y dependencies
-8. Sprint burndown chart template
-
-FORMATO: Template con tablas y checklist.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Scrum Master**.
-
-Create a **Sprint Planning Template** for:
-- **Team:** {{TEAM}}
-- **Sprint:** {{SPRINT}}
-- **Capacity:** {{CAPACITY}}
-
-INCLUDE:
-1. Sprint goal
-2. Team capacity (vacations, holidays)
-3. Velocity history
-4. Selected user stories with story points
-5. Task breakdown per story
-6. Definition of Ready / Done
-7. Risks and dependencies
-8. Sprint burndown chart template
-
-FORMAT: Template with tables and checklist.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['sprint', 'planning', 'scrum', 'agile', 'capacity']
-    },
-    {
-        id: 'stakeholder_comm_plan',
-        category: 'business',
-        icon: '📢',
-        title: { es: 'Stakeholder Communication Plan', en: 'Stakeholder Communication Plan' },
-        description: { es: 'Plan de comunicación con frecuencia, canales y formatos.', en: 'Communication plan with frequency, channels, and formats.' },
-        prompt: {
-            es: `Actúa como un **Program Manager**.
-
-Crea un **Stakeholder Communication Plan** para:
-- **Proyecto:** {{PROJECT}}
-- **Stakeholders:** {{STAKEHOLDERS}}
-- **Frecuencia:** {{FREQUENCY}}
-
-INCLUYE:
-1. Stakeholder mapping (power/interest matrix)
-2. Communication channels por stakeholder
-3. Frequency y format (weekly report, monthly review, ad-hoc)
-4. Content template por tipo de comunicación
-5. Escalation paths
-6. Feedback mechanism
-7. Communication calendar
-8. Success metrics para comunicación
-
-FORMATO: Matriz con templates de comunicación.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Program Manager**.
-
-Create a **Stakeholder Communication Plan** for:
-- **Project:** {{PROJECT}}
-- **Stakeholders:** {{STAKEHOLDERS}}
-- **Frequency:** {{FREQUENCY}}
-
-INCLUDE:
-1. Stakeholder mapping (power/interest matrix)
-2. Communication channels per stakeholder
-3. Frequency and format (weekly report, monthly review, ad-hoc)
-4. Content template per communication type
-5. Escalation paths
-6. Feedback mechanism
-7. Communication calendar
-8. Communication success metrics
-
-FORMAT: Matrix with communication templates.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['communication', 'stakeholders', 'plan', 'management', 'reporting']
-    },
-
     // ─── Social Media ─────────────────────────────────────────────────────────
 
     {
@@ -2817,51 +1405,55 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Hilo Viral en X/Twitter', en: 'Viral X/Twitter Thread' },
         description: { es: 'Thread de 8-12 tweets con hook, desarrollo y CTA.', en: '8-12 tweet thread with hook, development, and CTA.' },
         prompt: {
-            es: `Actúa como un **Twitter Growth Strategist**.
+            es: `Actúa como un **Twitter Growth Strategist** con enfoque en contenido de alto engagement.
 
-Crea un **Hilo Viral en X/Twitter** para:
+Crea un **Hilo Viral en X/Twitter** sobre **{{TOPIC}}** para **{{AUDIENCE}}**, con un hook de tipo **{{HOOK_TYPE}}** y cierre con **{{CTA_MESSAGE}}**.
+
+**Contexto:**
 - **Tema:** {{TOPIC}}
 - **Audiencia:** {{AUDIENCE}}
 - **Tipo de hook:** {{HOOK_TYPE}}
-- **CTA:** {{CTA}}
+- **CTA de cierre:** {{CTA_MESSAGE}}
 
-ESTRUCTURA:
-1. Tweet 1: Hook irresistible (curiosity gap, contrarian, o story)
-2. Tweets 2-7: Desarrollo con valor, datos, ejemplos
-3. Tweet 8-10: Insights clave y takeaways
-4. Tweet final: CTA + request de engagement
+**ESTRUCTURA:**
+1. Tweet 1: hook potente (curiosity gap, contrarian o story).
+2. Tweets 2-7: desarrollo con valor, datos y ejemplos.
+3. Tweets 8-10: insights y takeaways.
+4. Tweet final: CTA ({{CTA_MESSAGE}}) + request de engagement.
 
-REGLAS:
-- Máximo 280 chars por tweet
-- Líneas cortas y scannable
-- Emojis estratégicos
-- Numeración (1/10, 2/10...)
-- Espacios entre párrafos
+**REGLAS:**
+- Máx. 280 caracteres por tweet.
+- Líneas cortas y scannable.
+- Numeración (1/10, 2/10...) y espacios entre párrafos.
 
-FORMATO: Thread completo con notas de estrategia.
+**FORMATO DE SALIDA:**
+- Thread completo numerado con notas de estrategia por tweet.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Twitter Growth Strategist**.
+            en: `Act as a **Twitter Growth Strategist** focused on high-engagement content.
 
-Create a **Viral X/Twitter Thread** for:
+Create a **Viral X/Twitter Thread** about **{{TOPIC}}** for **{{AUDIENCE}}**, with a **{{HOOK_TYPE}}** hook and a closing **{{CTA_MESSAGE}}**.
+
+**Context:**
 - **Topic:** {{TOPIC}}
 - **Audience:** {{AUDIENCE}}
 - **Hook type:** {{HOOK_TYPE}}
-- **CTA:** {{CTA}}
+- **Closing CTA:** {{CTA_MESSAGE}}
 
-STRUCTURE:
-1. Tweet 1: Irresistible hook (curiosity gap, contrarian, or story)
-2. Tweets 2-7: Development with value, data, examples
-3. Tweets 8-10: Key insights and takeaways
-4. Final tweet: CTA + engagement request
+**STRUCTURE:**
+1. Tweet 1: strong hook (curiosity gap, contrarian, or story).
+2. Tweets 2-7: development with value, data, and examples.
+3. Tweets 8-10: insights and takeaways.
+4. Final tweet: CTA ({{CTA_MESSAGE}}) + engagement request.
 
-RULES:
-- Max 280 chars per tweet
-- Short, scannable lines
-- Strategic emojis
-- Numbering (1/10, 2/10...)
-- Spacing between paragraphs
+**RULES:**
+- Max. 280 characters per tweet.
+- Short, scannable lines.
+- Numbering (1/10, 2/10...) and paragraph spacing.
 
-FORMAT: Complete thread with strategy notes.
+**OUTPUT FORMAT:**
+- Complete numbered thread with strategy notes per tweet.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['twitter', 'thread', 'viral', 'social-media', 'engagement']
@@ -2873,51 +1465,59 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Carrusel de Instagram', en: 'Instagram Carousel' },
         description: { es: 'Estructura de 8-10 slides con copy y dirección visual.', en: '8-10 slide structure with copy and visual direction.' },
         prompt: {
-            es: `Actúa como un **Instagram Content Strategist**.
+            es: `Actúa como un **Instagram Content Strategist** con dominio visual y de copy.
 
-Crea un **Carrusel de Instagram** para:
+Diseña un **Carrusel de Instagram** de 8-10 slides sobre **{{TOPIC}}**, con objetivo **{{GOAL}}**, estilo visual **{{VISUAL_STYLE}}** y dirigido a **{{AUDIENCE}}**.
+
+**Contexto:**
 - **Tema:** {{TOPIC}}
 - **Objetivo:** {{GOAL}}
 - **Estilo visual:** {{VISUAL_STYLE}}
 - **Audiencia:** {{AUDIENCE}}
 
-ESTRUCTURA (8-10 slides):
-1. Slide 1: Hook visual + título impactante
-2. Slide 2: Contexto/problema
-3. Slides 3-7: Contenido valor (1 idea por slide)
-4. Slide 8: Resumen/key takeaways
-5. Slide 9: CTA (save, share, comment)
-6. Slide 10: Brand slide
+**ESTRUCTURA:**
+1. Slide 1: hook visual + título impactante.
+2. Slide 2: contexto/problema.
+3. Slides 3-7: una idea de valor por slide.
+4. Slide 8: resumen y takeaways.
+5. Slide 9: CTA (save, share, comment).
+6. Slide 10: slide de marca.
 
-POR SLIDE:
-- Copy del texto
-- Dirección visual (colores, elementos, layout)
-- Tipografía sugerida
+**POR SLIDE, ENTREGA:**
+- Copy del texto.
+- Brief visual (colores, elementos, layout) coherente con {{VISUAL_STYLE}}.
+- Tipografía sugerida.
 
-FORMATO: Slide-by-slide con copy + brief visual.
+**FORMATO DE SALIDA:**
+- Desglose slide-by-slide con copy + brief visual.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Instagram Content Strategist**.
+            en: `Act as an **Instagram Content Strategist** with visual and copy expertise.
 
-Create an **Instagram Carousel** for:
+Design an 8-10 slide **Instagram Carousel** about **{{TOPIC}}**, with the goal of **{{GOAL}}**, the visual style **{{VISUAL_STYLE}}**, aimed at **{{AUDIENCE}}**.
+
+**Context:**
 - **Topic:** {{TOPIC}}
 - **Goal:** {{GOAL}}
 - **Visual style:** {{VISUAL_STYLE}}
 - **Audience:** {{AUDIENCE}}
 
-STRUCTURE (8-10 slides):
-1. Slide 1: Visual hook + impactful title
-2. Slide 2: Context/problem
-3. Slides 3-7: Value content (1 idea per slide)
-4. Slide 8: Summary/key takeaways
-5. Slide 9: CTA (save, share, comment)
-6. Slide 10: Brand slide
+**STRUCTURE:**
+1. Slide 1: visual hook + impactful title.
+2. Slide 2: context/problem.
+3. Slides 3-7: one value idea per slide.
+4. Slide 8: summary and takeaways.
+5. Slide 9: CTA (save, share, comment).
+6. Slide 10: brand slide.
 
-PER SLIDE:
-- Text copy
-- Visual direction (colors, elements, layout)
-- Suggested typography
+**PER SLIDE, DELIVER:**
+- Text copy.
+- Visual brief (colors, elements, layout) consistent with {{VISUAL_STYLE}}.
+- Suggested typography.
 
-FORMAT: Slide-by-slide with copy + visual brief.
+**OUTPUT FORMAT:**
+- Slide-by-slide breakdown with copy + visual brief.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['instagram', 'carousel', 'social-media', 'visual', 'content']
@@ -2929,53 +1529,59 @@ LANGUAGE: {{LANG_OUTPUT}}`
         title: { es: 'Guion de TikTok/Reel', en: 'TikTok/Reel Script' },
         description: { es: 'Guion de 30-60s con hook visual, desarrollo y CTA.', en: '30-60s script with visual hook, development, and CTA.' },
         prompt: {
-            es: `Actúa como un **Short-Form Video Strategist**.
+            es: `Actúa como un **Short-Form Video Strategist** experto en TikTok y Reels.
 
-Crea un **Guion de TikTok/Reel** para:
+Escribe el **Guion de TikTok/Reel** sobre **{{TOPIC}}**, de **{{DURATION}}** de duración y en estilo **{{STYLE}}**. El guion debe maximizar retención en los primeros 3 segundos.
+
+**Contexto:**
 - **Tema:** {{TOPIC}}
-- **Trend:** {{TREND}}
 - **Duración:** {{DURATION}}
 - **Estilo:** {{STYLE}}
 
-ESTRUCTURA:
-1. **Hook (0-3s)**: Visual + verbal que detiene el scroll
-2. **Setup (3-8s)**: Contexto rápido
-3. **Value (8-45s)**: Contenido principal con cortes dinámicos
-4. **CTA (45-60s)**: Call to action natural
+**ESTRUCTURA POR TIMESTAMPS:**
+1. **Hook (0-3s)**: visual + verbal que detenga el scroll.
+2. **Setup (3-8s)**: contexto rápido y promesa.
+3. **Value (8s-...)**: contenido principal con cortes dinámicos.
+4. **CTA (últimos 5s)**: acción natural.
 
-INCLUYE:
-- Script palabra por palabra
-- Indicaciones visuales por segmento
-- Timing de cortes
-- Sugerencia de audio/trend
-- Texto en pantalla (captions)
-- Hashtags recomendados
+**INCLUYE:**
+- Script palabra por palabra.
+- Indicaciones visuales por segmento.
+- Timing de cortes.
+- Sugerencia de audio/trend según {{STYLE}}.
+- Texto en pantalla (captions).
+- Hashtags recomendados.
 
-FORMATO: Guion con timestamps y notas de producción.
+**FORMATO DE SALIDA:**
+- Guion con timestamps y notas de producción.
+
 IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Short-Form Video Strategist**.
+            en: `Act as a **Short-Form Video Strategist** expert in TikTok and Reels.
 
-Create a **TikTok/Reel Script** for:
+Write the **TikTok/Reel Script** about **{{TOPIC}}**, **{{DURATION}}** long, in a **{{STYLE}}** style. The script must maximize retention in the first 3 seconds.
+
+**Context:**
 - **Topic:** {{TOPIC}}
-- **Trend:** {{TREND}}
 - **Duration:** {{DURATION}}
 - **Style:** {{STYLE}}
 
-STRUCTURE:
-1. **Hook (0-3s)**: Visual + verbal that stops the scroll
-2. **Setup (3-8s)**: Quick context
-3. **Value (8-45s)**: Main content with dynamic cuts
-4. **CTA (45-60s)**: Natural call to action
+**STRUCTURE WITH TIMESTAMPS:**
+1. **Hook (0-3s)**: visual + verbal that stops the scroll.
+2. **Setup (3-8s)**: quick context and promise.
+3. **Value (8s-...)**: main content with dynamic cuts.
+4. **CTA (last 5s)**: natural call to action.
 
-INCLUDE:
-- Word-for-word script
-- Visual directions per segment
-- Cut timing
-- Audio/trend suggestion
-- On-screen text (captions)
-- Recommended hashtags
+**INCLUDE:**
+- Word-for-word script.
+- Visual directions per segment.
+- Cut timing.
+- Audio/trend suggestion per {{STYLE}}.
+- On-screen text (captions).
+- Recommended hashtags.
 
-FORMAT: Script with timestamps and production notes.
+**OUTPUT FORMAT:**
+- Script with timestamps and production notes.
+
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['tiktok', 'reels', 'video', 'script', 'short-form']
@@ -3089,160 +1695,6 @@ LANGUAGE: {{LANG_OUTPUT}}`
         tags: ['calendar', 'content', 'planning', 'social-media', 'schedule']
     },
     {
-        id: 'launch_campaign',
-        category: 'social',
-        icon: '🎯',
-        title: { es: 'Campaña de Lanzamiento en Redes', en: 'Social Media Launch Campaign' },
-        description: { es: 'Estrategia de 2 semanas pre/durante/post lanzamiento.', en: '2-week pre/during/post launch strategy.' },
-        prompt: {
-            es: `Actúa como un **Launch Campaign Strategist**.
-
-Crea una **Campaña de Lanzamiento** para:
-- **Producto:** {{PRODUCT}}
-- **Plataformas:** {{PLATFORMS}}
-- **Fecha:** {{DATE}}
-- **Budget:** {{BUDGET}}
-
-FASES:
-1. **Pre-launch (7 días)**: Teasers, countdown, behind-the-scenes
-2. **Launch day**: Announcement, live event, influencer posts
-3. **Post-launch (7 días)**: Social proof, testimonials, UGC, retargeting
-
-POR FASE:
-- Contenido por día
-- Copy y creative brief
-- Paid ads strategy
-- Influencer coordination
-- Engagement tactics
-- Métricas y KPIs
-
-FORMATO: Plan detallado con timeline.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Launch Campaign Strategist**.
-
-Create a **Launch Campaign** for:
-- **Product:** {{PRODUCT}}
-- **Platforms:** {{PLATFORMS}}
-- **Date:** {{DATE}}
-- **Budget:** {{BUDGET}}
-
-PHASES:
-1. **Pre-launch (7 days)**: Teasers, countdown, behind-the-scenes
-2. **Launch day**: Announcement, live event, influencer posts
-3. **Post-launch (7 days)**: Social proof, testimonials, UGC, retargeting
-
-PER PHASE:
-- Daily content
-- Copy and creative brief
-- Paid ads strategy
-- Influencer coordination
-- Engagement tactics
-- Metrics and KPIs
-
-FORMAT: Detailed plan with timeline.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['launch', 'campaign', 'social-media', 'product', 'marketing']
-    },
-    {
-        id: 'social_competitor_analysis',
-        category: 'social',
-        icon: '📊',
-        title: { es: 'Análisis de Competencia en Social', en: 'Social Competitor Analysis' },
-        description: { es: 'Comparativa de estrategia social con métricas y gaps.', en: 'Social strategy comparison with metrics and gaps.' },
-        prompt: {
-            es: `Actúa como un **Social Media Analyst**.
-
-Realiza un **Análisis de Competencia en Social** para:
-- **Marca:** {{BRAND}}
-- **Competidores:** {{COMPETITORS}}
-- **Plataformas:** {{PLATFORMS}}
-
-ANÁLISIS:
-1. Presencia por plataforma (seguidores, engagement rate)
-2. Tipo de contenido más performante
-3. Frecuencia de publicación
-4. Tono y voz de marca
-5. Hashtag strategy
-6. Influencer partnerships
-7. Paid ads presence
-8. Gaps y oportunidades para nuestra marca
-
-FORMATO: Reporte con tablas comparativas y recomendaciones.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Social Media Analyst**.
-
-Perform a **Social Competitor Analysis** for:
-- **Brand:** {{BRAND}}
-- **Competitors:** {{COMPETITORS}}
-- **Platforms:** {{PLATFORMS}}
-
-ANALYSIS:
-1. Presence per platform (followers, engagement rate)
-2. Best-performing content type
-3. Posting frequency
-4. Brand tone and voice
-5. Hashtag strategy
-6. Influencer partnerships
-7. Paid ads presence
-8. Gaps and opportunities for our brand
-
-FORMAT: Report with comparison tables and recommendations.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['competitor', 'analysis', 'social-media', 'metrics', 'strategy']
-    },
-    {
-        id: 'hashtag_strategy',
-        category: 'social',
-        icon: '🔥',
-        title: { es: 'Estrategia de Hashtags', en: 'Hashtag Strategy' },
-        description: { es: 'Set de hashtags por plataforma con volumen y competencia.', en: 'Hashtag set per platform with volume and competition.' },
-        prompt: {
-            es: `Actúa como un **Social Media SEO Specialist**.
-
-Crea una **Estrategia de Hashtags** para:
-- **Tema:** {{TOPIC}}
-- **Plataforma:** {{PLATFORM}}
-- **Nicho:** {{NICHE}}
-- **Idioma:** {{LANGUAGE}}
-
-INCLUYE:
-1. Hashtags de alto volumen (1M+)
-2. Hashtags de medio volumen (100K-1M)
-3. Hashtags de bajo volumen (10K-100K)
-4. Hashtags de nicho (<10K)
-5. Hashtags de marca
-6. Hashtags trending relacionados
-7. Sets rotativos para evitar shadowban
-8. Platform-specific recommendations
-
-FORMATO: Tabla categorizada con volumen estimado.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Social Media SEO Specialist**.
-
-Create a **Hashtag Strategy** for:
-- **Topic:** {{TOPIC}}
-- **Platform:** {{PLATFORM}}
-- **Niche:** {{NICHE}}
-- **Language:** {{LANGUAGE}}
-
-INCLUDE:
-1. High volume hashtags (1M+)
-2. Medium volume hashtags (100K-1M)
-3. Low volume hashtags (10K-100K)
-4. Niche hashtags (<10K)
-5. Brand hashtags
-6. Related trending hashtags
-7. Rotating sets to avoid shadowban
-8. Platform-specific recommendations
-
-FORMAT: Categorized table with estimated volume.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['hashtags', 'seo', 'social-media', 'discovery', 'reach']
-    },
-    {
         id: 'youtube_script',
         category: 'social',
         icon: '🎥',
@@ -3304,165 +1756,6 @@ LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['youtube', 'script', 'video', 'seo', 'content']
     },
-    {
-        id: 'social_ad_copy',
-        category: 'social',
-        icon: '📢',
-        title: { es: 'Facebook/Instagram Ad Copy', en: 'Facebook/Instagram Ad Copy' },
-        description: { es: 'Copy de anuncio con variantes A/B y targeting.', en: 'Ad copy with A/B variants and targeting.' },
-        prompt: {
-            es: `Actúa como un **Paid Social Copywriter**.
-
-Crea **Ad Copy para Facebook/Instagram** para:
-- **Producto:** {{PRODUCT}}
-- **Audiencia:** {{AUDIENCE}}
-- **Objetivo:** {{GOAL}}
-- **Budget:** {{BUDGET}}
-
-INCLUYE:
-1. 3 variantes de primary text (corto, medio, largo)
-2. 3 variantes de headline
-3. 2 variantes de description
-4. 3 creative concepts (visual direction)
-5. A/B testing plan
-6. Targeting recommendations
-7. Budget allocation strategy
-8. KPI benchmarks
-
-REGLAS:
-- Primary text: máximo 125 chars (visible sin "see more")
-- Headline: máximo 40 chars
-- Description: máximo 30 chars
-
-FORMATO: Copy completo con notas de campaña.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Paid Social Copywriter**.
-
-Create **Facebook/Instagram Ad Copy** for:
-- **Product:** {{PRODUCT}}
-- **Audience:** {{AUDIENCE}}
-- **Goal:** {{GOAL}}
-- **Budget:** {{BUDGET}}
-
-INCLUDE:
-1. 3 primary text variants (short, medium, long)
-2. 3 headline variants
-3. 2 description variants
-4. 3 creative concepts (visual direction)
-5. A/B testing plan
-6. Targeting recommendations
-7. Budget allocation strategy
-8. KPI benchmarks
-
-RULES:
-- Primary text: max 125 chars (visible without "see more")
-- Headline: max 40 chars
-- Description: max 30 chars
-
-FORMAT: Complete copy with campaign notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['ads', 'facebook', 'instagram', 'paid', 'copywriting']
-    },
-    {
-        id: 'social_media_audit',
-        category: 'social',
-        icon: '📋',
-        title: { es: 'Social Media Audit', en: 'Social Media Audit' },
-        description: { es: 'Auditoría completa de presencia social con métricas.', en: 'Complete social presence audit with metrics.' },
-        prompt: {
-            es: `Actúa como un **Social Media Auditor**.
-
-Realiza un **Social Media Audit** para:
-- **Marca:** {{BRAND}}
-- **Plataformas:** {{PLATFORMS}}
-- **Período:** {{PERIOD}}
-
-ANÁLISIS:
-1. Perfil optimization (bio, foto, link, highlights)
-2. Consistencia de branding
-3. Content performance por tipo
-4. Engagement rate trends
-5. Audience demographics
-6. Posting frequency analysis
-7. Competitor benchmarking
-8. Recommendations y action plan
-
-FORMATO: Reporte con métricas y plan de acción.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Social Media Auditor**.
-
-Perform a **Social Media Audit** for:
-- **Brand:** {{BRAND}}
-- **Platforms:** {{PLATFORMS}}
-- **Period:** {{PERIOD}}
-
-ANALYSIS:
-1. Profile optimization (bio, photo, link, highlights)
-2. Branding consistency
-3. Content performance by type
-4. Engagement rate trends
-5. Audience demographics
-6. Posting frequency analysis
-7. Competitor benchmarking
-8. Recommendations and action plan
-
-FORMAT: Report with metrics and action plan.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['audit', 'social-media', 'metrics', 'analysis', 'optimization']
-    },
-    {
-        id: 'influencer_outreach',
-        category: 'social',
-        icon: '🤝',
-        title: { es: 'Influencer Outreach Template', en: 'Influencer Outreach Template' },
-        description: { es: 'Template de outreach a influencers con propuesta.', en: 'Influencer outreach template with proposal.' },
-        prompt: {
-            es: `Actúa como un **Influencer Marketing Manager**.
-
-Crea un **Influencer Outreach Template** para:
-- **Marca:** {{BRAND}}
-- **Influencer:** {{INFLUENCER}}
-- **Campaña:** {{CAMPAIGN}}
-- **Budget:** {{BUDGET}}
-
-INCLUYE:
-1. Email/DM de outreach personalizado
-2. Propuesta de colaboración
-3. Deliverables esperados
-4. Compensation structure
-5. Timeline y deadlines
-6. Brand guidelines
-7. Approval process
-8. Follow-up sequence
-
-FORMATO: Templates listos para usar.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Influencer Marketing Manager**.
-
-Create an **Influencer Outreach Template** for:
-- **Brand:** {{BRAND}}
-- **Influencer:** {{INFLUENCER}}
-- **Campaign:** {{CAMPAIGN}}
-- **Budget:** {{BUDGET}}
-
-INCLUDE:
-1. Personalized outreach email/DM
-2. Collaboration proposal
-3. Expected deliverables
-4. Compensation structure
-5. Timeline and deadlines
-6. Brand guidelines
-7. Approval process
-8. Follow-up sequence
-
-FORMAT: Ready-to-use templates.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['influencer', 'outreach', 'collaboration', 'partnership', 'marketing']
-    },
-
     // ─── Creative ─────────────────────────────────────────────────────────────
 
     {
@@ -3717,261 +2010,6 @@ LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['business', 'canvas', 'model', 'strategy', 'startup']
     },
-    {
-        id: 'creative_campaign_360',
-        category: 'creative',
-        icon: '🎭',
-        title: { es: 'Campaña Creativa 360°', en: '360° Creative Campaign' },
-        description: { es: 'Concepto multi-canal con idea central y activations.', en: 'Multi-channel concept with central idea and activations.' },
-        prompt: {
-            es: `Actúa como un **Creative Director de Agencia**.
-
-Crea una **Campaña Creativa 360°** para:
-- **Marca:** {{BRAND}}
-- **Objetivo:** {{GOAL}}
-- **Audiencia:** {{AUDIENCE}}
-- **Budget:** {{BUDGET}}
-
-ENTREGABLES:
-1. Big Idea (concepto central)
-2. Key visual description
-3. Tagline
-4. Activations por canal (OOH, digital, social, PR, experiential)
-5. Timeline de campaña
-6. Budget allocation
-7. KPIs y measurement
-8. Risk assessment
-
-FORMATO: Brief creativo completo con mood board descriptivo.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Agency Creative Director**.
-
-Create a **360° Creative Campaign** for:
-- **Brand:** {{BRAND}}
-- **Goal:** {{GOAL}}
-- **Audience:** {{AUDIENCE}}
-- **Budget:** {{BUDGET}}
-
-DELIVERABLES:
-1. Big Idea (central concept)
-2. Key visual description
-3. Tagline
-4. Activations per channel (OOH, digital, social, PR, experiential)
-5. Campaign timeline
-6. Budget allocation
-7. KPIs and measurement
-8. Risk assessment
-
-FORMAT: Complete creative brief with descriptive mood board.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['campaign', 'creative', '360', 'advertising', 'agency']
-    },
-    {
-        id: 'naming_tagline',
-        category: 'creative',
-        icon: '✏️',
-        title: { es: 'Naming & Tagline', en: 'Naming & Tagline' },
-        description: { es: 'Generación de nombres y slogans con análisis semántico.', en: 'Name and slogan generation with semantic analysis.' },
-        prompt: {
-            es: `Actúa como un **Naming Specialist**.
-
-Genera **Naming & Tagline** para:
-- **Empresa:** {{COMPANY}}
-- **Sector:** {{SECTOR}}
-- **Valores:** {{VALUES}}
-- **Idioma:** {{LANGUAGE}}
-
-ENTREGABLES:
-1. 20+ opciones de naming con:
-   - Significado/etimología
-   - Disponibilidad de dominio (.com)
-   - Análisis fonético
-   - Asociaciones culturales
-2. 10+ taglines por nombre top
-3. Filtro por criterios (corto, memorable, único)
-4. Top 3 recomendados con justificación
-
-FORMATO: Tabla con análisis por opción.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Naming Specialist**.
-
-Generate **Naming & Tagline** for:
-- **Company:** {{COMPANY}}
-- **Sector:** {{SECTOR}}
-- **Values:** {{VALUES}}
-- **Language:** {{LANGUAGE}}
-
-DELIVERABLES:
-1. 20+ naming options with:
-   - Meaning/etymology
-   - Domain availability (.com)
-   - Phonetic analysis
-   - Cultural associations
-2. 10+ taglines per top name
-3. Filter by criteria (short, memorable, unique)
-4. Top 3 recommended with justification
-
-FORMAT: Table with analysis per option.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['naming', 'tagline', 'branding', 'semantics', 'identity']
-    },
-    {
-        id: 'mood_board_brief',
-        category: 'creative',
-        icon: '🎨',
-        title: { es: 'Visual Mood Board Brief', en: 'Visual Mood Board Brief' },
-        description: { es: 'Brief para mood board con paleta, tipografía y estilo.', en: 'Mood board brief with palette, typography, and style.' },
-        prompt: {
-            es: `Actúa como un **Art Director**.
-
-Crea un **Visual Mood Board Brief** para:
-- **Marca:** {{BRAND}}
-- **Estilo:** {{STYLE}}
-- **Audiencia:** {{AUDIENCE}}
-- **Emoción:** {{EMOTION}}
-
-ENTREGABLES:
-1. Color palette (primary, secondary, accent) con hex codes
-2. Typography pairing (heading, body, accent)
-3. Visual style references (descriptivas)
-4. Photography direction
-5. Iconography style
-6. Layout patterns
-7. Do's and Don'ts
-8. AI image prompts para generar referencias
-
-FORMATO: Brief visual completo con descripciones detalladas.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Art Director**.
-
-Create a **Visual Mood Board Brief** for:
-- **Brand:** {{BRAND}}
-- **Style:** {{STYLE}}
-- **Audience:** {{AUDIENCE}}
-- **Emotion:** {{EMOTION}}
-
-DELIVERABLES:
-1. Color palette (primary, secondary, accent) with hex codes
-2. Typography pairing (heading, body, accent)
-3. Visual style references (descriptive)
-4. Photography direction
-5. Iconography style
-6. Layout patterns
-7. Do's and Don'ts
-8. AI image prompts for generating references
-
-FORMAT: Complete visual brief with detailed descriptions.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['mood-board', 'visual', 'art-direction', 'design', 'palette']
-    },
-    {
-        id: 'storytelling_framework',
-        category: 'creative',
-        icon: '📖',
-        title: { es: 'Storytelling Framework', en: 'Storytelling Framework' },
-        description: { es: 'Estructura narrativa con arco, personajes y mensaje.', en: 'Narrative structure with arc, characters, and message.' },
-        prompt: {
-            es: `Actúa como un **Storytelling Strategist**.
-
-Crea un **Storytelling Framework** para:
-- **Tema:** {{THEME}}
-- **Audiencia:** {{AUDIENCE}}
-- **Formato:** {{FORMAT}}
-- **Emoción:** {{EMOTION}}
-
-ESTRUCTURA:
-1. Protagonista (quién)
-2. Conflicto (qué obstáculo)
-3. Journey (cómo lo supera)
-4. Transformación (qué cambia)
-5. Mensaje (qué aprendemos)
-6. Call to action (qué hacer ahora)
-
-INCLUYE:
-- Arco narrativo completo
-- Emotional beats
-- Key moments
-- Adaptación por formato (video, texto, presentación)
-
-FORMATO: Framework con ejemplos aplicados.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Storytelling Strategist**.
-
-Create a **Storytelling Framework** for:
-- **Theme:** {{THEME}}
-- **Audience:** {{AUDIENCE}}
-- **Format:** {{FORMAT}}
-- **Emotion:** {{EMOTION}}
-
-STRUCTURE:
-1. Protagonist (who)
-2. Conflict (what obstacle)
-3. Journey (how they overcome it)
-4. Transformation (what changes)
-5. Message (what we learn)
-6. Call to action (what to do now)
-
-INCLUDE:
-- Complete narrative arc
-- Emotional beats
-- Key moments
-- Adaptation per format (video, text, presentation)
-
-FORMAT: Framework with applied examples.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['storytelling', 'narrative', 'framework', 'creative', 'emotion']
-    },
-    {
-        id: 'creative_block_breaker',
-        category: 'creative',
-        icon: '💡',
-        title: { es: 'Creative Block Breaker', en: 'Creative Block Breaker' },
-        description: { es: 'Técnicas para desbloquear creatividad con prompts.', en: 'Techniques to unblock creativity with prompts.' },
-        prompt: {
-            es: `Actúa como un **Creative Coach**.
-
-Genera un **Creative Block Breaker** para:
-- **Disciplina:** {{DISCIPLINE}}
-- **Problema:** {{PROBLEM}}
-- **Técnica:** {{TECHNIQUE}}
-
-INCLUYE:
-1. 10 prompts creativos específicos
-2. 5 ejercicios de warm-up
-3. 3 técnicas de ideación (SCAMPER, random word, reverse thinking)
-4. 1 ejercicio de cambio de perspectiva
-5. 1 ejercicio de constraints
-6. Playlist sugerida para creative flow
-7. Environment tips
-
-FORMATO: Guía práctica con ejercicios paso a paso.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Creative Coach**.
-
-Generate a **Creative Block Breaker** for:
-- **Discipline:** {{DISCIPLINE}}
-- **Problem:** {{PROBLEM}}
-- **Technique:** {{TECHNIQUE}}
-
-INCLUDE:
-1. 10 discipline-specific creative prompts
-2. 5 warm-up exercises
-3. 3 ideation techniques (SCAMPER, random word, reverse thinking)
-4. 1 perspective shift exercise
-5. 1 constraint exercise
-6. Suggested playlist for creative flow
-7. Environment tips
-
-FORMAT: Practical guide with step-by-step exercises.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['creative-block', 'prompts', 'exercises', 'coaching', 'inspiration']
-    },
-
     // ─── Content ──────────────────────────────────────────────────────────────
 
     {
@@ -4193,60 +2231,6 @@ LANGUAGE: {{LANG_OUTPUT}}`
         tags: ['whitepaper', 'report', 'research', 'data', 'technical']
     },
     {
-        id: 'online_course',
-        category: 'content',
-        icon: '🎓',
-        title: { es: 'Curso Online / Syllabus', en: 'Online Course / Syllabus' },
-        description: { es: 'Estructura de curso con módulos, lecciones y evaluaciones.', en: 'Course structure with modules, lessons, and assessments.' },
-        prompt: {
-            es: `Actúa como un **Instructional Designer**.
-
-Crea un **Curso Online** para:
-- **Tema:** {{TOPIC}}
-- **Nivel:** {{LEVEL}}
-- **Duración:** {{DURATION}}
-- **Formato:** {{FORMAT}}
-
-ESTRUCTURA:
-1. Course overview y learning objectives
-2. Módulos (4-8) con:
-   - Título y descripción
-   - Lecciones (3-5 por módulo)
-   - Duración estimada
-   - Recursos
-3. Evaluaciones por módulo
-4. Proyecto final
-5. Certificate requirements
-6. Prerequisites
-
-FORMATO: Syllabus completo con tabla de contenidos.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Instructional Designer**.
-
-Create an **Online Course** for:
-- **Topic:** {{TOPIC}}
-- **Level:** {{LEVEL}}
-- **Duration:** {{DURATION}}
-- **Format:** {{FORMAT}}
-
-STRUCTURE:
-1. Course overview and learning objectives
-2. Modules (4-8) with:
-   - Title and description
-   - Lessons (3-5 per module)
-   - Estimated duration
-   - Resources
-3. Assessments per module
-4. Final project
-5. Certificate requirements
-6. Prerequisites
-
-FORMAT: Complete syllabus with table of contents.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['course', 'syllabus', 'education', 'learning', 'instructional']
-    },
-    {
         id: 'case_study',
         category: 'content',
         icon: '📋',
@@ -4301,236 +2285,6 @@ FORMAT: Document with clear sections.
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['case-study', 'success', 'client', 'results', 'storytelling']
-    },
-    {
-        id: 'presentation_script',
-        category: 'content',
-        icon: '🎤',
-        title: { es: 'Guion de Presentación', en: 'Presentation Script' },
-        description: { es: 'Presentación con narrativa, slides y speaker notes.', en: 'Presentation with narrative, slides, and speaker notes.' },
-        prompt: {
-            es: `Actúa como un **Presentation Coach**.
-
-Crea un **Guion de Presentación** para:
-- **Tema:** {{TOPIC}}
-- **Audiencia:** {{AUDIENCE}}
-- **Duración:** {{DURATION}}
-- **Objetivo:** {{GOAL}}
-
-ESTRUCTURA:
-1. Opening (hook + agenda)
-2. Problem/Context
-3. Main points (3-5) con datos y ejemplos
-4. Solution/Recommendation
-5. Call to action
-6. Q&A prep
-
-POR SLIDE:
-- Título del slide
-- Contenido visual sugerido
-- Speaker notes (word-for-word)
-- Tiempo estimado
-
-FORMATO: Slide-by-slide con speaker notes.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Presentation Coach**.
-
-Create a **Presentation Script** for:
-- **Topic:** {{TOPIC}}
-- **Audience:** {{AUDIENCE}}
-- **Duration:** {{DURATION}}
-- **Goal:** {{GOAL}}
-
-STRUCTURE:
-1. Opening (hook + agenda)
-2. Problem/Context
-3. Main points (3-5) with data and examples
-4. Solution/Recommendation
-5. Call to action
-6. Q&A prep
-
-PER SLIDE:
-- Slide title
-- Suggested visual content
-- Speaker notes (word-for-word)
-- Estimated time
-
-FORMAT: Slide-by-slide with speaker notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['presentation', 'script', 'speaking', 'slides', 'keynote']
-    },
-    {
-        id: 'ebook_guide',
-        category: 'content',
-        icon: '📝',
-        title: { es: 'Guía / Ebook', en: 'Guide / Ebook' },
-        description: { es: 'Ebook con capítulos, ejercicios y recursos.', en: 'Ebook with chapters, exercises, and resources.' },
-        prompt: {
-            es: `Actúa como un **Book Editor & Content Strategist**.
-
-Crea un **Ebook** para:
-- **Tema:** {{TOPIC}}
-- **Audiencia:** {{AUDIENCE}}
-- **Extensión:** {{LENGTH}}
-- **Estilo:** {{STYLE}}
-
-ESTRUCTURA:
-1. Title y subtitle
-2. Table of contents
-3. Introduction
-4. Capítulos (5-8) con:
-   - Título
-   - Contenido completo
-   - Ejercicios prácticos
-   - Key takeaways
-5. Conclusion
-6. Resources y further reading
-7. About the author
-
-REQUISITOS: Accionable, bien estructurado, valor denso.
-FORMATO: Documento largo con capítulos numerados.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Book Editor & Content Strategist**.
-
-Create an **Ebook** for:
-- **Topic:** {{TOPIC}}
-- **Audience:** {{AUDIENCE}}
-- **Length:** {{LENGTH}}
-- **Style:** {{STYLE}}
-
-STRUCTURE:
-1. Title and subtitle
-2. Table of contents
-3. Introduction
-4. Chapters (5-8) with:
-   - Title
-   - Full content
-   - Practical exercises
-   - Key takeaways
-5. Conclusion
-6. Resources and further reading
-7. About the author
-
-REQUIREMENTS: Actionable, well-structured, dense value.
-FORMAT: Long document with numbered chapters.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['ebook', 'guide', 'book', 'content', 'education']
-    },
-    {
-        id: 'video_tutorial_script',
-        category: 'content',
-        icon: '📹',
-        title: { es: 'Guion de Video Tutorial', en: 'Video Tutorial Script' },
-        description: { es: 'Tutorial paso a paso con timestamps y recursos.', en: 'Step-by-step tutorial with timestamps and resources.' },
-        prompt: {
-            es: `Actúa como un **Technical Video Producer**.
-
-Crea un **Guion de Video Tutorial** para:
-- **Tema:** {{TOPIC}}
-- **Nivel:** {{LEVEL}}
-- **Duración:** {{DURATION}}
-- **Herramientas:** {{TOOLS}}
-
-ESTRUCTURA:
-1. Intro (15-30s): Qué van a aprender
-2. Prerequisites y setup
-3. Step-by-step tutorial con timestamps
-4. Common pitfalls y troubleshooting
-5. Recap y next steps
-6. CTA
-
-POR SEGMENTO:
-- Timestamp
-- Lo que se muestra en pantalla
-- Narración word-for-word
-- Notas de edición
-
-FORMATO: Guion con timestamps y notas de producción.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Technical Video Producer**.
-
-Create a **Video Tutorial Script** for:
-- **Topic:** {{TOPIC}}
-- **Level:** {{LEVEL}}
-- **Duration:** {{DURATION}}
-- **Tools:** {{TOOLS}}
-
-STRUCTURE:
-1. Intro (15-30s): What they'll learn
-2. Prerequisites and setup
-3. Step-by-step tutorial with timestamps
-4. Common pitfalls and troubleshooting
-5. Recap and next steps
-6. CTA
-
-PER SEGMENT:
-- Timestamp
-- What's shown on screen
-- Word-for-word narration
-- Editing notes
-
-FORMAT: Script with timestamps and production notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['tutorial', 'video', 'script', 'how-to', 'education']
-    },
-    {
-        id: 'press_release',
-        category: 'content',
-        icon: '📰',
-        title: { es: 'Press Release', en: 'Press Release' },
-        description: { es: 'Nota de prensa con headline, quotes, boilerplate.', en: 'Press release with headline, quotes, and boilerplate.' },
-        prompt: {
-            es: `Actúa como un **PR Specialist**.
-
-Escribe un **Press Release** para:
-- **Empresa:** {{COMPANY}}
-- **Noticia:** {{NEWS}}
-- **Audiencia:** {{AUDIENCE}}
-- **Fecha:** {{DATE}}
-
-ESTRUCTURA:
-1. FOR IMMEDIATE RELEASE
-2. Headline (impactante, <100 chars)
-3. Subheadline
-4. Dateline (city, date)
-5. Lead paragraph (who, what, when, where, why)
-6. Body paragraphs (details, context)
-7. Quote from executive
-8. Boilerplate
-9. Media contact
-10. ### (end mark)
-
-REQUISITOS: AP style, objective tone, newsworthy.
-FORMATO: Press release estándar.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **PR Specialist**.
-
-Write a **Press Release** for:
-- **Company:** {{COMPANY}}
-- **News:** {{NEWS}}
-- **Audience:** {{AUDIENCE}}
-- **Date:** {{DATE}}
-
-STRUCTURE:
-1. FOR IMMEDIATE RELEASE
-2. Headline (impactful, <100 chars)
-3. Subheadline
-4. Dateline (city, date)
-5. Lead paragraph (who, what, when, where, why)
-6. Body paragraphs (details, context)
-7. Quote from executive
-8. Boilerplate
-9. Media contact
-10. ### (end mark)
-
-REQUIREMENTS: AP style, objective tone, newsworthy.
-FORMAT: Standard press release.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['press-release', 'pr', 'announcement', 'media', 'news']
     },
 ];
 

@@ -35,7 +35,7 @@ its best work — clear intent, relevant context, and the right constraints.
 
 ## What you can do with it
 
-Seven purpose-built workspaces, each shaped around a real job:
+Six purpose-built workspaces, each shaped around a real job:
 
 - **🧬 Genesis Lab** — Kickstart creative work with seven proven ideation
   techniques (SCAMPER, Six Thinking Hats, Blue Ocean and more). Great when the
@@ -49,14 +49,22 @@ Seven purpose-built workspaces, each shaped around a real job:
   more, with audience and SEO baked in.
 - **📱 Social Strategist** — Build multi-channel campaigns with hooks and
   persuasion frameworks that actually get attention.
-- **📋 Template Library** — 60+ ready-made, bilingual (ES/EN) templates across
-  DevOps, writing, business and creative work.
-- **💬 Local Chat** — A conversational space to refine and iterate on your
-  prompts before committing them to a suite.
+- **📋 Template Library** — A curated library of bilingual (ES/EN) templates
+  across DevOps, security, writing, business, social and creative work.
 
 Three view modes let you work the way you prefer: a guided **form**, a raw
 **prompt editor**, or a **split** view with the form on one side and the
 generated prompt updating beside it.
+
+### No more orphan variables
+
+Every dropdown comes pre-filled with a sensible default, so you never have to
+touch them unless you want to. When Nexus rewrites your draft into a polished
+prompt, the AI **uses the concrete values you provided** — it's forbidden from
+inventing vague `{{placeholder}}` tokens. If a piece of information is genuinely
+missing, it's flagged plainly in the output (`[FALTA: …]` / `[MISSING: …]`),
+and an on-screen warning highlights any unfinished variable before you copy the
+prompt. You always know exactly what's going into the model.
 
 ---
 
@@ -82,6 +90,13 @@ provider for its real, current model list instead of trusting a hardcoded list
 that goes stale. And your settings — model, temperature, context size — persist
 between sessions, so the app remembers how you like to work when you come back.
 
+**Security hardened by default.** Connection endpoints are validated strictly —
+remote plain-HTTP targets are rejected, local ports are confined to an
+allow-list, attempts to embed credentials in URLs are refused, and request timeouts
+keep hostile or unresponsive endpoints from hanging the app. API keys never live in
+the config or the UI state: they're stored encrypted in your operating system's
+secure keychain and resolved only when a request is actually made.
+
 ---
 
 ## Getting started
@@ -101,7 +116,10 @@ between sessions, so the app remembers how you like to work when you come back.
 ## The nerdy part (for those who want it)
 
 Built on **Tauri v2**, **Rust**, and **React**, with streaming via SSE, rate
-limiting protection, and an encrypted local store. If you'd like to run it from
+limiting protection, strict endpoint validation, and an encrypted local store
+that uses only your OS keychain. Every generated prompt is scanned for leftover
+`{{placeholder}}` tokens against both the raw draft and the final AI-rewritten
+output, so nothing slips through. If you'd like to run it from
 source or contribute, head to [DEVELOPMENT.md](DEVELOPMENT.md) for the full
 setup and architecture overview.
 

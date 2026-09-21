@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::ai::{AiEngine, Message};
 
     /// Moch Engine para fase 3: Mocks (Evita usar red)
@@ -70,6 +72,32 @@ mod tests {
             )
             .await
         }
+
+        async fn stream_tokens(
+            &self,
+            provider: &str,
+            endpoint: &str,
+            model: &str,
+            messages: Vec<Message>,
+            temperature: f32,
+            num_ctx: u32,
+            api_key: Option<String>,
+            mut on_token: impl FnMut(&str) + Send + 'static,
+        ) -> Result<(), String> {
+            let text = self
+                .call_ai_stream(
+                    provider,
+                    endpoint,
+                    model,
+                    messages,
+                    temperature,
+                    num_ctx,
+                    api_key,
+                )
+                .await?;
+            on_token(&text);
+            Ok(())
+        }
     }
 
     // ── Phase 1: Happy Path Validation ──────────────────────────────────────
@@ -95,6 +123,76 @@ mod tests {
 
         assert!(res.is_ok(), "Happy path failed: {:?}", res);
         assert_eq!(res.unwrap(), "Mocked AI Response");
+    }
+
+    // ── Phase 1b: stream_tokens trait compiles & falls back to call_ai_stream ──
+    #[tokio::test]
+    async fn test_stream_tokens_dispatch_and_emit() {
+        let engine = MockAiEngine::new();
+        let msgs = vec![Message {
+            role: "user".into(),
+            content: "Hello".into(),
+        }];
+
+        let received = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+        let callback = {
+            let received = Arc::clone(&received);
+            move |tok: &str| {
+                received.lock().unwrap().push_str(tok);
+            }
+        };
+
+        let res = engine
+            .stream_tokens(
+                "openai",
+                "https://mock.api",
+                "gpt-4",
+                msgs,
+                0.7,
+                2048,
+                Some("sk-test123".into()),
+                callback,
+            )
+            .await;
+
+        assert!(res.is_ok(), "stream_tokens failed: {:?}", res);
+        assert_eq!(*received.lock().unwrap(), "Mocked AI Response");
+    }
+
+    #[tokio::test]
+    async fn test_stream_tokens_emits_multiple_chunks() {
+        let mut engine = MockAiEngine::new();
+        engine.mock_response = "Hola mundo".to_string();
+        let msgs = vec![Message {
+            role: "user".into(),
+            content: "Hello".into(),
+        }];
+
+        let chunks = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let callback = {
+            let chunks = Arc::clone(&chunks);
+            move |tok: &str| {
+                chunks.lock().unwrap().push(tok.to_string());
+            }
+        };
+
+        let res = engine
+            .stream_tokens(
+                "openai",
+                "https://mock.api",
+                "gpt-4",
+                msgs,
+                0.7,
+                2048,
+                Some("sk-test123".into()),
+                callback,
+            )
+            .await;
+
+        assert!(res.is_ok(), "stream_tokens failed: {:?}", res);
+        let chunks = chunks.lock().unwrap();
+        assert_eq!(chunks.join(""), "Hola mundo");
+        assert_eq!(chunks.len(), 1);
     }
 
     // ── Phase 2: Hostile Path (Edge Cases) ──────────────────────────────────
@@ -177,7 +275,8 @@ mod tests {
         assert!(crate::is_localhost("http://localhost:11434"));
         assert!(crate::is_localhost("https://127.0.0.1:8080"));
         // Note: IPv6 literal [::1] parsing depends on url crate version; tested manually
-        assert!(crate::is_localhost("http://myserver.local"));
+        // *.local hosts are no longer treated as localhost (intentional behavior change)
+        assert!(!crate::is_localhost("http://myserver.local"));
     }
 
     #[test]
@@ -187,41 +286,53 @@ mod tests {
     }
 
     #[test]
-    fn test_is_allowed_endpoint_exact_match() {
-        assert!(crate::is_allowed_endpoint("https://api.openai.com/v1"));
-        assert!(crate::is_allowed_endpoint("https://openrouter.ai/api"));
-        assert!(crate::is_allowed_endpoint("https://api.groq.com/openai/v1"));
+    fn test_validate_endpoint_accepts_custom_remote_https() {
+        // Any remote host over HTTPS is valid (allowlist removed).
+        assert!(crate::validate_endpoint_url(
+            "https://custom.vllm.ejemplo:8000/v1"
+        )
+        .is_ok());
+        assert!(crate::validate_endpoint_url(
+            "https://mi-servidor.ejemplo:8000/v1"
+        )
+        .is_ok());
+        assert!(crate::validate_endpoint_url("https://lmstudio.home.arpa/v1").is_ok());
     }
 
     #[test]
-    fn test_is_allowed_endpoint_subdomain() {
-        assert!(crate::is_allowed_endpoint("https://sub.api.openai.com/v1"));
-        assert!(crate::is_allowed_endpoint("https://beta.openrouter.ai/api"));
+    fn test_validate_endpoint_rejects_remote_http() {
+        // Remote endpoints MUST use HTTPS (API key protection).
+        let err = crate::validate_endpoint_url("http://custom.ejemplo/v1")
+            .expect_err("Remote HTTP endpoint should be rejected");
+        assert!(err.contains("HTTPS"));
     }
 
     #[test]
-    fn test_is_allowed_endpoint_bypass_blocked() {
-        assert!(!crate::is_allowed_endpoint(
-            "https://api.openai.com.evil.com/v1"
-        ));
-        assert!(!crate::is_allowed_endpoint("https://evilopenai.com/v1"));
-        assert!(!crate::is_allowed_endpoint(
-            "https://fake-api.openai.com.phishing.site/v1"
-        ));
-        assert!(!crate::is_allowed_endpoint(
-            "https://openrouter.ai.evil.com/api"
-        ));
+    fn test_validate_endpoint_accepts_localhost() {
+        assert!(crate::validate_endpoint_url("http://localhost:1234/v1").is_ok());
+        assert!(crate::validate_endpoint_url("https://127.0.0.1:8080").is_ok());
+        assert!(crate::validate_endpoint_url("").is_ok());
     }
 
     #[test]
-    fn test_is_allowed_endpoint_localhost() {
-        assert!(crate::is_allowed_endpoint("http://localhost:11434"));
-        assert!(crate::is_allowed_endpoint("http://127.0.0.1:8080"));
+    fn test_validate_endpoint_rejects_bad_scheme() {
+        assert!(crate::validate_endpoint_url("ftp://example.com/v1").is_err());
+        assert!(crate::validate_endpoint_url("file:///etc/passwd").is_err());
     }
 
     #[test]
-    fn test_is_allowed_endpoint_empty() {
-        assert!(crate::is_allowed_endpoint(""));
+    fn test_validate_endpoint_rejects_embedded_credentials() {
+        assert!(crate::validate_endpoint_url(
+            "https://user:pass@custom.ejemplo/v1"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn test_validate_endpoint_rejects_unallowed_local_port() {
+        let err = crate::validate_endpoint_url("http://localhost:9999/v1")
+            .expect_err("Local endpoint on unallowed port should be rejected");
+        assert!(err.contains("port"));
     }
 
     // ── Phase 4: Performance & Memory Profile ───────────────────────────────
@@ -257,5 +368,36 @@ mod tests {
             "Performance threshold exceeded! Took {}ms",
             elapsed.as_millis()
         );
+    }
+
+    // ── Phase 5: Real OS keyring smoke test ────────────────────────────────
+    #[tokio::test]
+    #[ignore]
+    async fn test_keyring_smoke() {
+        // Ejecuta manualmente contra el keyring del SO real (no en CI)
+        let result = tokio::task::spawn_blocking(|| -> Result<String, String> {
+            let entry = keyring::Entry::new("prompt-suite-keyring-smoke", "smoke")
+                .map_err(|e| e.to_string())?;
+            entry
+                .set_password("valor_secreto")
+                .map_err(|e| e.to_string())?;
+            entry.get_password().map_err(|e| e.to_string())
+        })
+        .await
+        .map_err(|e| format!("spawn_blocking task panicked: {e}"));
+
+        let cleanup = tokio::task::spawn_blocking(|| {
+            if let Ok(entry) = keyring::Entry::new("prompt-suite-keyring-smoke", "smoke") {
+                let _ = entry.delete_credential();
+            }
+        });
+
+        match result {
+            Ok(Ok(pw)) => assert_eq!(pw, "valor_secreto"),
+            Ok(Err(e)) => panic!("Keyring smoke test failed: {e}"),
+            Err(e) => panic!("{e}"),
+        }
+
+        cleanup.await.unwrap();
     }
 }

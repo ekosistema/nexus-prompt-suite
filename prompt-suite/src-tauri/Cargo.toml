@@ -25,7 +25,7 @@ log = "0.4"
 tauri = { version = "2.11.5", features = [] }
 tauri-plugin-log = "2.3"
 tauri-plugin-shell = "2.3"
-keyring = "3.6.3"
+keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 futures = "0.3"
 tokio = { version = "1", features = ["sync"] }
 tokio-stream = { version = "0.1", features = ["sync"] }

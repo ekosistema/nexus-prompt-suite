@@ -34,6 +34,18 @@ pub trait AiEngine: Send + Sync {
         num_ctx: u32,
         api_key: Option<String>,
     ) -> Result<String, String>;
+
+    async fn stream_tokens(
+        &self,
+        provider: &str,
+        endpoint: &str,
+        model: &str,
+        messages: Vec<Message>,
+        temperature: f32,
+        num_ctx: u32,
+        api_key: Option<String>,
+        on_token: impl FnMut(&str) + Send + 'static,
+    ) -> Result<(), String>;
 }
 
 pub struct DefaultAiEngine {
@@ -125,6 +137,7 @@ impl DefaultAiEngine {
         }
     }
 
+    #[allow(dead_code)] // kept for non-incremental SSE accumulation; streaming uses engine-level parsers
     pub(crate) async fn parse_sse_stream(
         &self,
         res: reqwest::Response,
@@ -252,6 +265,64 @@ impl AiEngine for DefaultAiEngine {
                     temperature,
                     api_key,
                     &info.api_path,
+                )
+                .await
+            }
+        }
+    }
+
+    async fn stream_tokens(
+        &self,
+        provider: &str,
+        endpoint: &str,
+        model: &str,
+        messages: Vec<Message>,
+        temperature: f32,
+        num_ctx: u32,
+        api_key: Option<String>,
+        mut on_token: impl FnMut(&str) + Send + 'static,
+    ) -> Result<(), String> {
+        let provider_enum = self.validate_provider(provider)?;
+        match provider_enum {
+            Provider::Ollama => {
+                self.stream_ollama_tokens(
+                    endpoint,
+                    model,
+                    messages,
+                    temperature,
+                    num_ctx,
+                    api_key,
+                    &mut on_token,
+                )
+                .await
+            }
+            Provider::Anthropic | Provider::Gemini => {
+                let text = self
+                    .call_ai(
+                        provider,
+                        endpoint,
+                        model,
+                        messages,
+                        temperature,
+                        num_ctx,
+                        api_key,
+                    )
+                    .await?;
+                on_token(&text);
+                Ok(())
+            }
+            _ => {
+                let info = get_provider_info(provider)
+                    .ok_or_else(|| format!("Unknown provider: {}", provider))?;
+                self.stream_openai_compatible_tokens(
+                    provider,
+                    endpoint,
+                    model,
+                    messages,
+                    temperature,
+                    api_key,
+                    &info.api_path,
+                    &mut on_token,
                 )
                 .await
             }

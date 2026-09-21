@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { promptTemplates, PromptTemplate } from './data';
 import { t } from '../../lib/i18n';
 import { secureGetItem, secureSetItem } from '../../lib/secureStorage';
-import { Search, BookOpen, Zap, Shield, FileText, Settings, Code, Plus, Trash2, Save, Edit3, X, Info } from 'lucide-react';
+import { Search, BookOpen, Zap, Shield, FileText, Settings, Code, Plus, Trash2, Save, Edit3, X, Info, Share2, Palette, Layers, AlertTriangle } from 'lucide-react';
 
 interface CustomTemplate {
     id: string;
@@ -37,6 +37,9 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
     security: <Shield size={14} />,
     writing: <FileText size={14} />,
     business: <BookOpen size={14} />,
+    social: <Share2 size={14} />,
+    creative: <Palette size={14} />,
+    content: <Layers size={14} />,
     custom: <Edit3 size={14} />,
 };
 
@@ -45,6 +48,9 @@ const CATEGORY_COLORS: Record<string, string> = {
     security: 'bg-red-500/10 text-red-400 border-red-500/30',
     writing: 'bg-green-500/10 text-green-400 border-green-500/30',
     business: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    social: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
+    creative: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    content: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
     custom: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
 };
 
@@ -332,7 +338,7 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
         }
 
         for (const varName of usedVars) {
-            const value = customVars[varName] || `[${varName}]`;
+            const value = customVars[varName] || `{{${varName}}}`;
             prompt = prompt.replace(new RegExp(`\\{\\{${varName}\\}\\}`, 'g'), value);
         }
 
@@ -421,13 +427,66 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
     // Template detail view
     if (selectedTemplate) {
         const usedVars = extractVariables(selectedTemplate.prompt[lang]);
+        const requiredVars = usedVars.filter(v => VAR_HELP[v]);
+        const optionalVars = usedVars.filter(v => !VAR_HELP[v]);
+
+        const renderVarCell = (varName: string) => {
+            const help = VAR_HELP[varName];
+            return (
+                <div key={varName} className="bg-card/50 border border-border rounded-xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-mono font-bold text-emerald-400">
+                            {`{{${varName}}}`}
+                        </span>
+                        {help && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                {t('variable.required', lang)}
+                            </span>
+                        )}
+                    </div>
+                    {help && (
+                        <p className="text-xs text-muted-foreground">
+                            {help.label[lang]}
+                        </p>
+                    )}
+                    <input
+                        type="text"
+                        className="w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                        placeholder={lang === 'es' ? 'Escribe tu valor aquí...' : 'Enter your value here...'}
+                        value={customVars[varName] || ''}
+                        onChange={(e) => setCustomVars({ ...customVars, [varName]: e.target.value })}
+                    />
+                    {help && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            {help.why[lang]}
+                        </p>
+                    )}
+                </div>
+            );
+        };
+
+        let filledPrompt = selectedTemplate.prompt[lang];
+        const varRegex = /\{\{(\w+)\}\}/g;
+        let match: RegExpExecArray | null;
+        const previewVars = new Set<string>();
+        while ((match = varRegex.exec(filledPrompt)) !== null) {
+            previewVars.add(match[1]);
+        }
+        previewVars.forEach(v => {
+            if (customVars[v]) {
+                filledPrompt = filledPrompt.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), customVars[v]);
+            }
+        });
+        filledPrompt = filledPrompt.replace(/\{\{LANG_OUTPUT\}\}/g, lang === 'es' ? 'ESPAÑOL' : 'ENGLISH');
+        const promptParts = filledPrompt.split(/(\{\{\w+\}\})/g);
+        const unfilledVars = usedVars.filter(v => !(customVars[v] && customVars[v].trim()));
 
         return (
             <div className="space-y-5 animate-in fade-in duration-300">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => { setSelectedTemplate(null); setCustomVars({}); }}
-                        className="text-xs px-3 py-1.5 rounded-md bg-secondary/50 hover:bg-secondary border border-border transition-all"
+                        className="text-xs px-3 py-1.5 rounded-md bg-secondary/50 hover:bg-secondary border border-border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     >
                         ← {t('templates.back', lang)}
                     </button>
@@ -438,53 +497,94 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                 <p className="text-sm text-muted-foreground">{selectedTemplate.description[lang]}</p>
 
                 {usedVars.length > 0 && (
-                    <div className="space-y-1">
-                        <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
-                            <Info size={14} className="text-primary" />
-                            {lang === 'es' ? 'Entiende las Variables' : 'Understanding the Variables'}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mb-4">
-                            {lang === 'es'
-                                ? 'Cada variable tiene un propósito específico. Completa los valores para personalizar la plantilla a tu contexto.'
-                                : 'Each variable has a specific purpose. Fill in the values to personalize the template to your context.'}
-                        </p>
-                        <div className="grid grid-cols-1 gap-4">
-                            {usedVars.map(varName => {
-                                const help = VAR_HELP[varName];
-                                return (
-                                    <div key={varName} className="bg-card/50 border border-border rounded-xl p-4 space-y-2.5">
-                                        <div>
-                                            <span className="text-sm font-mono font-bold text-primary">
-                                                {`{{${varName}}}`}
-                                            </span>
-                                            {help && (
-                                                <span className="text-sm text-muted-foreground ml-2">
-                                                    — {help.label[lang]}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {help && (
-                                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                                {help.why[lang]}
-                                            </p>
-                                        )}
-                                        <input
-                                            type="text"
-                                            className="w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                                            placeholder={lang === 'es' ? 'Escribe tu valor aquí...' : 'Enter your value here...'}
-                                            value={customVars[varName] || ''}
-                                            onChange={(e) => setCustomVars({ ...customVars, [varName]: e.target.value })}
-                                        />
-                                    </div>
-                                );
-                            })}
+                    <div className="space-y-4">
+                        <div className="space-y-0.5">
+                            <h3 className="text-sm font-bold flex items-center gap-2">
+                                <Info size={14} className="text-emerald-400" />
+                                {lang === 'es' ? 'Entiende las Variables' : 'Understanding the Variables'}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                                {t('variables.hint', lang)}
+                            </p>
                         </div>
+
+                        {usedVars.length >= 8 ? (
+                            <div className="space-y-4">
+                                {requiredVars.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            {t('variable.required', lang)}
+                                        </h4>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            {requiredVars.map(varName => renderVarCell(varName))}
+                                        </div>
+                                    </div>
+                                )}
+                                {optionalVars.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
+                                            {lang === 'es' ? 'Opcionales' : 'Optional'}
+                                        </h4>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            {optionalVars.map(varName => renderVarCell(varName))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {usedVars.map(varName => renderVarCell(varName))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <details className="group bg-card/40 border border-border rounded-xl overflow-hidden">
+                    <summary className="cursor-pointer select-none flex items-center gap-2 px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors list-none [&::-webkit-details-marker]:hidden">
+                        <FileText size={14} className="text-emerald-400 shrink-0" />
+                        {t('detail.preview', lang)}
+                        <span className="ml-auto text-[10px] transition-transform group-open:rotate-180">▾</span>
+                    </summary>
+                    <div className="px-4 pb-4">
+                        <div className="text-xs font-mono whitespace-pre-wrap leading-relaxed bg-secondary/40 border border-border rounded-md p-3 max-h-64 overflow-y-auto">
+                            {promptParts.map((part, i) =>
+                                /^\{\{\w+\}\}$/.test(part) ? (
+                                    <span key={`${part}-${i}`} className="text-emerald-400 font-bold">{part}</span>
+                                ) : (
+                                    <span key={`${part}-${i}`}>{part}</span>
+                                )
+                            )}
+                        </div>
+                    </div>
+                </details>
+
+                {unfilledVars.length > 0 && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-400/40 rounded-md" role="alert">
+                        <div className="flex items-center gap-2 font-bold text-amber-300 text-sm">
+                            <AlertTriangle size={16} className="shrink-0" />
+                            <span>{t('output.orphan.title', lang)}</span>
+                        </div>
+                        <p className="mt-1 text-amber-200 text-sm">
+                            {t('output.orphan.count', lang).replace('{{n}}', String(unfilledVars.length))}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {unfilledVars.map(v => (
+                                <code key={v} className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 font-mono text-xs text-amber-100">
+                                    {`{{${v}}}`}
+                                </code>
+                            ))}
+                        </div>
+                        <p className="mt-1.5 text-xs text-amber-200/80">
+                            {t('output.orphan.hint', lang)}
+                        </p>
                     </div>
                 )}
 
                 <button
                     onClick={handleExecute}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all text-sm"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                 >
                     <Zap size={16} />
                     {t('templates.use', lang)}
@@ -546,6 +646,9 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                                     <option value="security">{t('templates.cat.security', lang)}</option>
                                     <option value="writing">{t('templates.cat.writing', lang)}</option>
                                     <option value="business">{t('templates.cat.business', lang)}</option>
+                                    <option value="social">{t('templates.cat.social', lang)}</option>
+                                    <option value="creative">{t('templates.cat.creative', lang)}</option>
+                                    <option value="content">{t('templates.cat.content', lang)}</option>
                                 </select>
                             </div>
                         </div>
@@ -628,14 +731,14 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                         <BookOpen size={18} className="text-primary" />
                         {t('templates.title', lang)}
                     </h2>
-                    <p className="text-xs text-muted-foreground">{t('templates.desc', lang)}</p>
+                    <p className="text-xs text-muted-foreground">{t('templates.subtitle', lang)}</p>
                 </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all text-xs font-medium"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                 >
                     <Plus size={14} />
-                    {t('templates.add_custom', lang)}
+                    {t('templates.new', lang)}
                 </button>
             </div>
 
@@ -643,7 +746,7 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                     type="text"
-                    className="w-full bg-secondary/40 border border-input rounded-md pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="w-full bg-secondary/40 border border-input rounded-md pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     placeholder={t('templates.search', lang)}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -655,7 +758,8 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                     <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
+                        aria-pressed={selectedCategory === cat}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
                             selectedCategory === cat
                                 ? 'bg-primary/20 border-primary/40 text-primary'
                                 : 'bg-secondary/30 border-border text-muted-foreground hover:border-primary/30'
@@ -681,13 +785,13 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleEditCustom(customTpl!); }}
-                                        className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
+                                        className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                                     >
                                         <Edit3 size={12} />
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleDeleteCustom(customTpl!.id); }}
-                                        className="p-1 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive transition-colors"
+                                        className="p-1 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                                     >
                                         <Trash2 size={12} />
                                     </button>
@@ -695,7 +799,7 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                             )}
                             <button
                                 onClick={() => handleUseTemplate(template)}
-                                className="text-left w-full"
+                                className="text-left w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                             >
                                 <div className="flex items-start gap-3">
                                     <span className="text-2xl">{template.icon}</span>
@@ -728,8 +832,26 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
 
             {filteredTemplates.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
-                    <Search size={32} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">{t('templates.no_results', lang)}</p>
+                    {search.trim() !== '' || selectedCategory !== 'all' ? (
+                        <>
+                            <Search size={32} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm font-semibold text-foreground">{t('empty.noResults.title', lang)}</p>
+                            <p className="text-xs mt-1">{t('empty.noResults.body', lang)}</p>
+                            <button
+                                onClick={() => { setSearch(''); setSelectedCategory('all'); }}
+                                className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                            >
+                                <X size={12} />
+                                {t('empty.clear', lang)}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm font-semibold text-foreground">{t('empty.none.title', lang)}</p>
+                            <p className="text-xs mt-1">{t('empty.none.body', lang)}</p>
+                        </>
+                    )}
                 </div>
             )}
         </div>

@@ -44,8 +44,6 @@ module.exports = {
                     "social-text": "hsl(var(--module-social-text))",
                     templates: "hsl(var(--module-templates))",
                     "templates-text": "hsl(var(--module-templates-text))",
-                    chat: "hsl(var(--module-chat))",
-                    "chat-text": "hsl(var(--module-chat-text))",
                 },
             },
         },

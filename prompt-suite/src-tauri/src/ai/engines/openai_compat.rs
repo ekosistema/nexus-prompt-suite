@@ -1,6 +1,7 @@
-use super::super::engine::DefaultAiEngine;
+use super::super::engine::{DefaultAiEngine, MAX_STREAM_SIZE};
 use super::super::providers::get_provider_info;
 use super::super::types::{Message, Provider};
+use futures::StreamExt;
 use std::str::FromStr;
 
 struct OpenAiCompatRequest {
@@ -139,6 +140,35 @@ impl DefaultAiEngine {
         api_key: Option<String>,
         api_path: &str,
     ) -> Result<String, String> {
+        let mut full_content = String::new();
+        self.stream_openai_compatible_tokens(
+            provider_name,
+            endpoint,
+            model,
+            messages,
+            temperature,
+            api_key,
+            api_path,
+            &mut |content| full_content.push_str(content),
+        )
+        .await?;
+        Ok(full_content)
+    }
+
+    /// Streams SSE deltas from an OpenAI-compatible provider, invoking `on_token`
+    /// for each `choices[0].delta.content` fragment as it arrives.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn stream_openai_compatible_tokens(
+        &self,
+        provider_name: &str,
+        endpoint: &str,
+        model: &str,
+        messages: Vec<Message>,
+        temperature: f32,
+        api_key: Option<String>,
+        api_path: &str,
+        on_token: &mut (dyn FnMut(&str) + Send),
+    ) -> Result<(), String> {
         let request = self
             .build_openai_compat_request(
                 provider_name,
@@ -167,7 +197,33 @@ impl DefaultAiEngine {
             ));
         }
 
-        self.parse_sse_stream(res, &["choices", "0", "delta", "content"])
-            .await
+        let mut full_content = String::new();
+        let mut stream = res.bytes_stream();
+
+        while let Some(chunk) = stream.next().await {
+            let bytes = chunk.map_err(|e| e.to_string())?;
+            let text = String::from_utf8_lossy(&bytes);
+            for line in text.lines() {
+                let line = line.trim();
+                if line.is_empty() || line == "data: [DONE]" {
+                    continue;
+                }
+                if let Some(data) = line.strip_prefix("data: ") {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                        if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
+                            full_content.push_str(content);
+                            on_token(content);
+                        }
+                    }
+                }
+            }
+            if full_content.len() > MAX_STREAM_SIZE {
+                return Err(format!(
+                    "Stream response exceeds maximum size of {} chars (CWE-400 mitigation)",
+                    MAX_STREAM_SIZE
+                ));
+            }
+        }
+        Ok(())
     }
 }

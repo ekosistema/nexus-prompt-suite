@@ -110,7 +110,7 @@ export function AppProvider({ children }: AppProviderProps) {
                 
                 const migration = migrateLegacySettings(loadedSettings);
                 
-                const secureApiKey = await aiService.getProviderApiKey(
+                const hasApiKey = await aiService.hasProviderApiKey(
                     (loadedSettings.aiProvider as string) || 'ollama'
                 );
 
@@ -121,7 +121,7 @@ export function AppProvider({ children }: AppProviderProps) {
                     model: migration.model || 'llama3',
                     temperature: (loadedSettings.temperature as number) ?? 0.7,
                     numCtx: (loadedSettings.numCtx as number) || 4096,
-                    hasApiKey: !!secureApiKey,
+                    hasApiKey,
                     streaming: (loadedSettings.streaming as boolean) ?? true,
                     ollamaUrl: loadedSettings.ollamaUrl as string | undefined,
                     ollamaModel: loadedSettings.ollamaModel as string | undefined,

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import { sanitizeAIOutput, safeLog } from '../../lib/utils';
+import { collectOrphanVars } from './orphanUtils';
 import { SuiteDev } from './SuiteDev';
 import { SuiteStudio } from './SuiteStudio';
 import { SuiteSocial } from './SuiteSocial';
@@ -11,40 +12,32 @@ import { LLMStatusIndicator } from '../../components/ui/LLMStatusIndicator';
 import { usePromptGenerator } from '../../hooks/usePromptGenerator';
 import { useAIInference } from '../../hooks/useAIInference';
 import { useApp } from '../../contexts/AppContext';
-import { Message } from '../../services/ai';
 import { t } from '../../lib/i18n';
-import { Sparkles, Copy, Check, FileText, Settings2, PanelLeft, PanelRight, Columns } from 'lucide-react';
+import { Copy, Check, FileText, Settings2, Columns } from 'lucide-react';
 import { NAV_ITEMS, MODULE_COLORS } from './navConfig';
-import { ChatView } from './ChatView';
 import { SuiteOutputPanel } from './SuiteOutputPanel';
 
-export type SuiteTab = 'genesis' | 'dev' | 'studio' | 'social' | 'audit' | 'templates' | 'chat';
+export type SuiteTab = 'genesis' | 'dev' | 'studio' | 'social' | 'audit' | 'templates';
 
 interface PromptSuiteProps {
     activeTab: SuiteTab;
     lang: string;
     onTabChange: (tab: any) => void;
-    pendingPrompt: string | null;
-    onClearPending: () => void;
-    onExecuteInChat: (prompt: string) => void;
 }
 
-const PROMPT_ARCHITECT_SYSTEM = (lang: string) => `You are an Advanced Prompt Architect.
-Your SOLE PURPOSE is to rewrite and optimize the user's DRAFT prompt into a professional, precise, and highly effective instructions for an LLM.
-Best practices to apply:
-- Chain of Thought (ask the model to think step by step).
-- Clear role definitions and constraints.
-- Markdown structure for readability.
-- Variable placeholders if appropriate.
-
-IMPORTANT CONSTRAINTS FOR THE GENERATED PROMPT:
-1. OUTPUT LANGUAGE: You MUST provide the improved prompt in ${lang === 'es' ? 'SPANISH' : 'ENGLISH'}.
-2. NO FILLER IN GENERATED PROMPT: Ensure the instructions you write STRICTLY FORBID the target LLM from using introductory or concluding conversational filler (e.g., "Sure!", "Let me help you with that", "I will assume the role of..."). The target LLM should provide ONLY the raw result.
-
-IMPORTANT: Your own output MUST BE ONLY the improved prompt itself. Do not include conversational filler like "Here is your improved prompt" or "I have optimized it".
-If the input is a specific task (like 'Write a README'), do NOT write the README. Instead, write a HIGHLY DETAILED PROMPT that would tell another AI how to write that README perfectly.`;
-
 type ViewMode = 'form' | 'prompt' | 'split';
+
+const PROMPT_ARCHITECT_SYSTEM = (lang: string) => `You are an Advanced Prompt Architect. Reescribe el draft del usuario en un prompt profesional, preciso y altamente efectivo para otro LLM.
+- Devuelve SOLO el prompt mejorado, sin relleno (no digas "Aquí tienes tu prompt", ni "He optimizado tu prompt").
+- Aplica Chain of Thought (pide razonar paso a paso).
+- Define rol claro, restricciones y estructura Markdown.
+- ${lang === 'es'
+        ? 'Usa SIEMPRE los valores concretos proporcionados por el usuario. PROHIBIDO inventar placeholders con doble llave ({{...}}). Si falta un dato, márcalo con [FALTA: ...] en el idioma de salida.'
+        : 'Always use the concrete values provided by the user. FORBIDDEN to invent placeholders with double braces ({{...}}). If a value is missing, mark it with [MISSING: ...] in the output language.'}
+- Idioma: ${lang === 'es' ? 'español' : 'inglés'}.
+
+IMPORTANTE: Tu SALIDA debe ser el prompt mejorado (instrucciones para otra IA), NUNCA ejecutes la tarea del usuario.
+Si el input es una tarea concreta (p.ej. "escribe un README"), NO escribas el README: escribe un PROMPT detallado que le diga a otra IA cómo escribir ese README perfectamente.`;
 
 const GENERATE_BTN_WIDTH = 'min-w-[280px] w-auto';
 const GENERATE_BTN_HEIGHT = 'h-11';
@@ -53,13 +46,8 @@ export function PromptSuite(props: PromptSuiteProps) {
     const {
         activeTab,
         lang,
-        onTabChange,
-        pendingPrompt,
-        onClearPending,
-        onExecuteInChat
+        onTabChange
     } = props;
-
-    const { settings, providers } = useApp();
 
     const {
         prompt: staticPrompt,
@@ -69,38 +57,21 @@ export function PromptSuite(props: PromptSuiteProps) {
         reset: resetPrompt
     } = usePromptGenerator();
 
+    const { settings, providers } = useApp();
+
     const {
         result: aiResult,
-        messages: aiMessages,
         isThinking,
         elapsedMs,
         error: aiError,
         runInference,
-        setMessages,
         resetInference
     } = useAIInference();
 
     const [copied, setCopied] = useState(false);
-    const [autoExecute, setAutoExecute] = useState(true);
-    const [refinementText, setRefinementText] = useState('');
     const [viewMode, setViewMode] = useState<ViewMode>('form');
+    const [orphanVars, setOrphanVars] = useState<string[]>([]);
     const generateFnRef = useRef<(() => void) | null>(null);
-
-    useEffect(() => {
-        if (activeTab === 'chat' && pendingPrompt) {
-            runInference(pendingPrompt, false);
-            onClearPending();
-        }
-    }, [activeTab, pendingPrompt, runInference, onClearPending]);
-
-    useEffect(() => {
-        if (!pendingPrompt) {
-            resetInference();
-            resetPrompt();
-            setRefinementText('');
-        }
-        setViewMode('form');
-    }, [activeTab]);
 
     const stripMarkdownFences = (text: string): string => {
         return sanitizeAIOutput(text
@@ -116,11 +87,21 @@ export function PromptSuite(props: PromptSuiteProps) {
     const providerName = currentProvider?.name || settings.aiProvider;
     const estimatedTokens = displayResult ? Math.ceil(displayResult.length / 4) : 0;
 
+    useEffect(() => {
+        resetPrompt();
+        setViewMode('form');
+        setOrphanVars([]);
+    }, [activeTab]);
+
     const handleTriggerGenerate = useCallback(() => {
         if (generateFnRef.current) {
             generateFnRef.current();
         }
     }, []);
+
+    const detectOrphans = (p: string, aiText?: string | null): void => {
+        setOrphanVars(collectOrphanVars(p, aiText));
+    };
 
     const handleCopy = useCallback(async () => {
         try {
@@ -132,36 +113,22 @@ export function PromptSuite(props: PromptSuiteProps) {
         }
     }, [displayResult]);
 
-    const handleRunAI = async () => {
+    const handleRunAI = useCallback(async () => {
         if (!staticPrompt) return;
-        const systemPrompt = activeTab !== 'chat' ? PROMPT_ARCHITECT_SYSTEM(lang) : undefined;
-        await runInference(staticPrompt, false, systemPrompt);
-    };
+        const response = await runInference(staticPrompt, false, PROMPT_ARCHITECT_SYSTEM(lang));
+        detectOrphans(staticPrompt, response);
+    }, [staticPrompt, lang, runInference]);
 
     const handleGenerateStatic = async (p: string) => {
         resetInference();
         generate(p);
-        if (autoExecute) {
-            const systemPrompt = activeTab !== 'chat' ? PROMPT_ARCHITECT_SYSTEM(lang) : undefined;
-            await runInference(p, false, systemPrompt);
-        }
+        detectOrphans(p);
+        const response = await runInference(p, false, PROMPT_ARCHITECT_SYSTEM(lang));
+        detectOrphans(p, response);
         setViewMode('split');
     };
 
-    const handleRefine = async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        if (!refinementText.trim() || isThinking) return;
-        const textToSubmit = refinementText;
-        setRefinementText('');
-        await runInference(textToSubmit, true);
-    };
-
-    const handleChatSend = async (input: string) => {
-        await runInference(input, false);
-    };
-
     const suiteLang = lang as 'es' | 'en';
-    const isChatTab = activeTab === 'chat';
     const hasPrompt = staticPrompt.length > 0;
 
     const currentNavItem = NAV_ITEMS.find(item => item.id === activeTab) || NAV_ITEMS[0];
@@ -183,25 +150,6 @@ export function PromptSuite(props: PromptSuiteProps) {
             default: return null;
         }
     };
-
-    if (isChatTab) {
-        return (
-            <ChatView
-                messages={aiMessages}
-                isThinking={isThinking}
-                isLoading={isLoading}
-                elapsedMs={elapsedMs}
-                error={aiError}
-                providerName={providerName}
-                model={settings.model}
-                onSendMessage={handleChatSend}
-                onCopy={handleCopy}
-                copied={copied}
-                suiteLang={suiteLang}
-                onSelectHistory={(messages) => setMessages(messages)}
-            />
-        );
-    }
 
     return (
         <div className="flex flex-col h-full gap-4">
@@ -253,7 +201,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                     </button>
                 </div>
 
-                {hasPrompt && (
+                {hasPrompt && displayResult && (
                     <button
                         onClick={handleCopy}
                         className={cn(
@@ -263,19 +211,6 @@ export function PromptSuite(props: PromptSuiteProps) {
                     >
                         {copied ? <Check size={14} /> : <Copy size={14} />}
                         <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
-                    </button>
-                )}
-
-                {activeTab !== 'templates' && (
-                    <button
-                        onClick={() => setAutoExecute(!autoExecute)}
-                        className={cn(
-                            "flex items-center gap-1.5 px-3 h-8 rounded-full border text-xs transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-                            autoExecute ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary/50 border-border text-muted-foreground"
-                        )}
-                    >
-                        <Sparkles size={12} />
-                        <span className="hidden sm:inline">{autoExecute ? "AI: ON" : "AI: OFF"}</span>
                     </button>
                 )}
 
@@ -302,19 +237,14 @@ export function PromptSuite(props: PromptSuiteProps) {
                 {viewMode === 'prompt' && (
                     <div className="h-full">
                         <SuiteOutputPanel
-                            aiResult={aiResult}
-                            displayResult={displayResult}
                             staticPrompt={staticPrompt}
+                            displayResult={displayResult}
                             activeError={activeError}
                             isThinking={isThinking}
                             isLoading={isLoading}
-                            onRunAI={handleRunAI}
-                            onExecuteInChat={onExecuteInChat}
-                            onRefine={handleRefine}
-                            refinementText={refinementText}
-                            setRefinementText={setRefinementText}
-                            showRefine={aiMessages.length > 0 || isThinking}
+                            onRegenerate={handleRunAI}
                             lang={suiteLang}
+                            orphanVars={orphanVars}
                         />
                     </div>
                 )}
@@ -329,19 +259,14 @@ export function PromptSuite(props: PromptSuiteProps) {
 
                         <div className="flex flex-col gap-4 min-h-0 overflow-hidden">
                             <SuiteOutputPanel
-                                aiResult={aiResult}
-                                displayResult={displayResult}
                                 staticPrompt={staticPrompt}
+                                displayResult={displayResult}
                                 activeError={activeError}
                                 isThinking={isThinking}
                                 isLoading={isLoading}
-                                onRunAI={handleRunAI}
-                                onExecuteInChat={onExecuteInChat}
-                                onRefine={handleRefine}
-                                refinementText={refinementText}
-                                setRefinementText={setRefinementText}
-                                showRefine={aiMessages.length > 0 || isThinking}
+                                onRegenerate={handleRunAI}
                                 lang={suiteLang}
+                                orphanVars={orphanVars}
                             />
                         </div>
                     </div>

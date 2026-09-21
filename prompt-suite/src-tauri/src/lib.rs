@@ -36,9 +36,7 @@ fn save_settings(app: tauri::AppHandle, mut settings: serde_json::Value) -> Resu
     path.push(".nexus_preferences.json");
 
     // [CWE-312] Clean API keys from plain JSON
-    if let Some(obj) = settings.as_object_mut() {
-        obj.remove("apiKey");
-    }
+    strip_secrets(&mut settings);
 
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -89,35 +87,31 @@ fn save_provider_api_key(provider: String, key: String) -> Result<bool, String> 
     Ok(true)
 }
 
-/// Retrieves the API key for a specific provider from the OS keyring.
-/// Falls back to legacy key for backward compatibility.
+/// Reports whether a provider has an API key stored in the OS keyring.
+/// The key value never leaves the Rust process (H-01).
 #[tauri::command]
-fn get_provider_api_key(provider: String) -> Result<String, String> {
-    let info = crate::ai::get_provider_info(&provider);
-
-    if let Some(info) = info {
-        if !info.keyring_suffix.is_empty() {
-            let service = format!("prompt-suite-ia:{}", info.keyring_suffix);
-            if let Ok(entry) = keyring::Entry::new(&service, "api_key") {
-                if let Ok(pw) = entry.get_password() {
-                    return Ok(pw);
-                }
-            }
-        }
+fn has_provider_api_key(provider: String) -> Result<bool, String> {
+    let info = match crate::ai::get_provider_info(&provider) {
+        Some(i) => i,
+        None => return Ok(false),
+    };
+    if info.keyring_suffix.is_empty() {
+        return Ok(!info.needs_api_key);
     }
-
-    // Fallback to legacy key for backward compatibility
-    let entry =
-        keyring::Entry::new("prompt-suite-ia", "user_api_key").map_err(|e| e.to_string())?;
+    let service = format!("prompt-suite-ia:{}", info.keyring_suffix);
+    let entry = keyring::Entry::new(&service, "api_key").map_err(|e| e.to_string())?;
     match entry.get_password() {
-        Ok(pw) => Ok(pw),
-        Err(_) => Ok("".to_string()),
+        Ok(pw) => Ok(!pw.is_empty()),
+        Err(_) => Ok(false),
     }
 }
 
 /// Securely stores a value in the OS keyring under a given key.
 #[tauri::command]
 fn secure_storage_set(key: String, value: String) -> Result<bool, String> {
+    if !SECURE_STORAGE_ALLOWED_KEYS.contains(&key.as_str()) {
+        return Err("Secure storage key not allowed".into());
+    }
     let entry =
         keyring::Entry::new("prompt-suite-secure-storage", &key).map_err(|e| e.to_string())?;
     entry.set_password(&value).map_err(|e| e.to_string())?;
@@ -127,17 +121,26 @@ fn secure_storage_set(key: String, value: String) -> Result<bool, String> {
 /// Retrieves a value from the OS keyring by key.
 #[tauri::command]
 fn secure_storage_get(key: String) -> Result<String, String> {
+    if !SECURE_STORAGE_ALLOWED_KEYS.contains(&key.as_str()) {
+        return Err("Secure storage key not allowed".into());
+    }
     let entry =
         keyring::Entry::new("prompt-suite-secure-storage", &key).map_err(|e| e.to_string())?;
     match entry.get_password() {
         Ok(pw) => Ok(pw),
-        Err(_) => Ok(String::new()),
+        Err(keyring::Error::NoEntry) => Ok(String::new()),
+        Err(e) => Err(format!(
+            "No se pudo acceder al gestor de credenciales del sistema: {e}"
+        )),
     }
 }
 
 /// Removes a value from the OS keyring by key.
 #[tauri::command]
 fn secure_storage_remove(key: String) -> Result<bool, String> {
+    if !SECURE_STORAGE_ALLOWED_KEYS.contains(&key.as_str()) {
+        return Err("Secure storage key not allowed".into());
+    }
     let entry =
         keyring::Entry::new("prompt-suite-secure-storage", &key).map_err(|e| e.to_string())?;
     let _ = entry.delete_credential();
@@ -160,15 +163,8 @@ async fn list_provider_models(
     let info = crate::ai::get_provider_info(&provider)
         .ok_or_else(|| format!("Unknown provider: {}", provider))?;
 
-    if !endpoint.is_empty() && !endpoint.starts_with("http://") && !endpoint.starts_with("https://")
-    {
-        return Err("Endpoint must start with http:// or https://".into());
-    }
-    if !endpoint.is_empty() && !is_allowed_endpoint(&endpoint) {
-        return Err(format!(
-            "Endpoint host is not in the allowed list. Allowed hosts: localhost, {}",
-            ALLOWED_REMOTE_HOSTS.join(", ")
-        ));
+    if !endpoint.is_empty() {
+        validate_endpoint_url(&endpoint)?;
     }
 
     let client = reqwest::Client::builder()
@@ -332,15 +328,25 @@ const MIN_TEMPERATURE: f32 = 0.0;
 const MAX_TEMPERATURE: f32 = 2.0;
 const MODELS_FETCH_TIMEOUT_SECS: u64 = 10;
 
-const ALLOWED_REMOTE_HOSTS: &[&str] = &[
-    "api.openai.com",
-    "openrouter.ai",
-    "api.groq.com",
-    "api.together.xyz",
-    "api.anthropic.com",
-    "generativelanguage.googleapis.com",
-    "opencode.ai",
-];
+/// Ports allowed for local (localhost/127.0.0.1/::1) endpoints (M-01 SSRF scoping).
+const ALLOWED_LOCAL_PORTS: &[u16] = &[80, 443, 11434, 1234, 8000, 8080, 3000, 5173, 5000, 4000, 31415];
+
+/// Keys the renderer may read/write/delete through `secure_storage_*` (M-02).
+const SECURE_STORAGE_ALLOWED_KEYS: &[&str] = &["app_cache", "session_nonce"];
+
+fn strip_secrets(v: &mut serde_json::Value) {
+    if let serde_json::Value::Object(m) = v {
+        let keys: Vec<String> = m.keys().cloned().collect();
+        for k in keys {
+            let lower = k.to_lowercase();
+            if lower == "apikey" || lower == "api_key" || lower == "authorization" {
+                m.remove(&k);
+            } else if let Some(child) = m.get_mut(&k) {
+                strip_secrets(child);
+            }
+        }
+    }
+}
 
 pub(crate) fn is_localhost(endpoint: &str) -> bool {
     if endpoint.is_empty() {
@@ -348,32 +354,9 @@ pub(crate) fn is_localhost(endpoint: &str) -> bool {
     }
     if let Ok(parsed) = url::Url::parse(endpoint) {
         if let Some(host) = parsed.host_str() {
-            return host == "localhost"
-                || host == "127.0.0.1"
-                || host == "::1"
-                || host.ends_with(".local");
+            return host == "localhost" || host == "127.0.0.1" || host == "::1";
         }
     }
-    false
-}
-
-pub(crate) fn is_allowed_endpoint(endpoint: &str) -> bool {
-    if endpoint.is_empty() {
-        return true;
-    }
-
-    if is_localhost(endpoint) {
-        return true;
-    }
-
-    if let Ok(parsed) = url::Url::parse(endpoint) {
-        if let Some(host) = parsed.host_str() {
-            return ALLOWED_REMOTE_HOSTS
-                .iter()
-                .any(|allowed| host == *allowed || host.ends_with(&format!(".{}", allowed)));
-        }
-    }
-
     false
 }
 
@@ -392,17 +375,30 @@ fn validate_endpoint_url(endpoint: &str) -> Result<(), String> {
         return Err("Endpoint URL must not contain credentials".into());
     }
 
+    // M-01: restrict local endpoints to an explicit allowlist of ports so the
+    // backend cannot be used as a proxy to arbitrary localhost services.
+    if is_localhost(endpoint) {
+        if let Some(port) = parsed.port() {
+            if !ALLOWED_LOCAL_PORTS.contains(&port) {
+                return Err(format!(
+                    "Local endpoint port {} is not allowed. Allowed local ports: {}",
+                    port,
+                    ALLOWED_LOCAL_PORTS
+                        .iter()
+                        .map(|p| p.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ));
+            }
+        }
+    }
+
     if !is_localhost(endpoint) && scheme != "https" {
         return Err("Remote endpoints must use HTTPS. HTTP is only allowed for localhost.".into());
     }
 
-    let full_url = parsed.to_string();
-    if !is_allowed_endpoint(&full_url) {
-        return Err(format!(
-            "Endpoint host is not in the allowed list. Allowed hosts: localhost, {}",
-            ALLOWED_REMOTE_HOSTS.join(", ")
-        ));
-    }
+    // Any remote host is accepted as long as it uses HTTPS (the API key would
+    // otherwise travel in clear). Localhost remains the only HTTP exception.
     Ok(())
 }
 
@@ -455,6 +451,9 @@ fn validate_ai_params(
 }
 
 /// Orchestrates an AI inference call across different providers.
+///
+/// API keys are always resolved server-side from the keyring (H-02); the
+/// renderer never supplies a key for these commands.
 #[tauri::command]
 async fn call_ai(
     provider: String,
@@ -463,7 +462,6 @@ async fn call_ai(
     messages: Vec<Message>,
     temperature: f32,
     num_ctx: u32,
-    api_key: Option<String>,
 ) -> Result<String, String> {
     validate_ai_params(
         &provider,
@@ -483,7 +481,7 @@ async fn call_ai(
             messages,
             temperature,
             num_ctx,
-            api_key,
+            None,
         )
         .await
 }
@@ -497,7 +495,6 @@ async fn call_ai_stream(
     messages: Vec<Message>,
     temperature: f32,
     num_ctx: u32,
-    api_key: Option<String>,
 ) -> Result<String, String> {
     validate_ai_params(
         &provider,
@@ -517,9 +514,53 @@ async fn call_ai_stream(
             messages,
             temperature,
             num_ctx,
-            api_key,
+            None,
         )
         .await
+}
+
+/// Streams AI tokens incrementally to the frontend via a Tauri `Channel`.
+///
+/// The api_key is resolved server-side (keyring) — it never travels from the
+/// renderer. Each token is sent as `{"type":"token","delta": ...}` and a final
+/// `{"type":"done"}` is emitted before the command resolves.
+#[tauri::command]
+async fn stream_ai(
+    provider: String,
+    endpoint: String,
+    model: String,
+    messages: Vec<Message>,
+    temperature: f32,
+    num_ctx: u32,
+    on_token: tauri::ipc::Channel<serde_json::Value>,
+) -> Result<(), String> {
+    validate_ai_params(
+        &provider,
+        &endpoint,
+        &model,
+        &messages,
+        temperature,
+        num_ctx,
+    )?;
+    let _guard = crate::rate_limiter::RateLimitGuard::acquire("stream_ai")?;
+    let engine = DefaultAiEngine::new();
+    let channel = on_token.clone();
+    engine
+        .stream_tokens(
+            &provider,
+            &endpoint,
+            &model,
+            messages,
+            temperature,
+            num_ctx,
+            None,
+            move |tok| {
+                let _ = channel.send(serde_json::json!({ "type": "token", "delta": tok }));
+            },
+        )
+        .await?;
+    let _ = on_token.send(serde_json::json!({ "type": "done" }));
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -541,13 +582,14 @@ pub fn run() {
             save_settings,
             call_ai,
             call_ai_stream,
+            stream_ai,
             list_ollama_models,
             list_provider_models,
             get_available_providers,
             save_api_key_secure,
             get_api_key_secure,
             save_provider_api_key,
-            get_provider_api_key,
+            has_provider_api_key,
             secure_storage_set,
             secure_storage_get,
             secure_storage_remove

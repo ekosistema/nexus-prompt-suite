@@ -1,7 +1,7 @@
-import { Sparkles, Terminal, ShieldCheck, BookOpen, Share2, Library, MessageSquare, Settings } from 'lucide-react';
+import { Sparkles, Terminal, ShieldCheck, BookOpen, Share2, Library, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-export type NavItemId = 'genesis' | 'dev' | 'audit' | 'studio' | 'social' | 'templates' | 'chat' | 'settings';
+export type NavItemId = 'genesis' | 'dev' | 'audit' | 'studio' | 'social' | 'templates' | 'settings';
 
 export interface NavConfigItem {
     id: NavItemId;
@@ -17,7 +17,6 @@ export const NAV_ITEMS: NavConfigItem[] = [
     { id: 'studio', labelKey: 'nav.studio', icon: BookOpen, hue: 'purple' },
     { id: 'social', labelKey: 'nav.social', icon: Share2, hue: 'pink' },
     { id: 'templates', labelKey: 'nav.templates', icon: Library, hue: 'emerald' },
-    { id: 'chat', labelKey: 'nav.chat', icon: MessageSquare, hue: 'indigo' },
     { id: 'settings', labelKey: 'nav.settings', icon: Settings, hue: 'gray' },
 ];
 
