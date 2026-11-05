@@ -116,9 +116,9 @@ export const aiService = {
         }
     },
 
-    async listProviderModels(provider: string, endpoint: string, apiKey?: string): Promise<string[]> {
+    async listProviderModels(provider: string, endpoint: string): Promise<string[]> {
         try {
-            const models = await invoke('list_provider_models', { provider, endpoint, apiKey }) as string[];
+            const models = await invoke('list_provider_models', { provider, endpoint }) as string[];
             return models;
         } catch (error) {
             safeLog('error', 'Provider model list error:', error);

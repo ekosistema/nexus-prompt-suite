@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import { sanitizeAIOutput, safeLog } from '../../lib/utils';
+import { stripMarkdownFences, safeLog } from '../../lib/utils';
 import { collectOrphanVars } from './orphanUtils';
 import { SuiteDev } from './SuiteDev';
 import { SuiteStudio } from './SuiteStudio';
@@ -13,7 +13,11 @@ import { usePromptGenerator } from '../../hooks/usePromptGenerator';
 import { useAIInference } from '../../hooks/useAIInference';
 import { useApp } from '../../contexts/AppContext';
 import { t } from '../../lib/i18n';
-import { Copy, Check, FileText, Settings2, Columns } from 'lucide-react';
+import { Copy, Check, FileText, Settings2, Columns, Sparkles, AlertCircle, Zap, History } from 'lucide-react';
+import { useHistory } from '../../hooks/useHistory';
+import { getSessionValue, setSessionValue } from '../../hooks/useSessionState';
+import { HistoryEntry, PromptVersion, currentText, deriveTitle } from '../../lib/history';
+import { HistoryPanel } from './HistoryPanel';
 import { NAV_ITEMS, MODULE_COLORS } from './navConfig';
 import { SuiteOutputPanel } from './SuiteOutputPanel';
 
@@ -39,6 +43,22 @@ const PROMPT_ARCHITECT_SYSTEM = (lang: string) => `You are an Advanced Prompt Ar
 IMPORTANTE: Tu SALIDA debe ser el prompt mejorado (instrucciones para otra IA), NUNCA ejecutes la tarea del usuario.
 Si el input es una tarea concreta (p.ej. "escribe un README"), NO escribas el README: escribe un PROMPT detallado que le diga a otra IA cómo escribir ese README perfectamente.`;
 
+const REFINE_SYSTEM = (lang: string) => `You are a Prompt Editor. You receive an existing PROMPT and an INSTRUCTION describing a change.
+- Apply the instruction to the prompt and return ONLY the full revised prompt, with no preface or commentary.
+- Keep everything the instruction does not touch (role, constraints, concrete values, structure).
+- Never invent {{placeholders}}; keep the concrete values already present. If something is missing, mark it with ${lang === 'es' ? '[FALTA: ...]' : '[MISSING: ...]'}.
+- Keep the prompt's current language unless the instruction asks to translate it.
+- NEVER execute the task the prompt describes: your output is still a prompt for another AI.`;
+
+const SNAPSHOT_KEYS: Record<string, string[]> = {
+    genesis: ['suite.genesis'],
+    dev: ['suite.dev'],
+    audit: ['suite.audit'],
+    studio: ['suite.studio'],
+    social: ['suite.social'],
+    templates: ['templates.selectedId', 'templates.vars'],
+};
+
 const GENERATE_BTN_WIDTH = 'min-w-[280px] w-auto';
 const GENERATE_BTN_HEIGHT = 'h-11';
 
@@ -60,7 +80,6 @@ export function PromptSuite(props: PromptSuiteProps) {
     const { settings, providers } = useApp();
 
     const {
-        result: aiResult,
         isThinking,
         elapsedMs,
         error: aiError,
@@ -71,15 +90,39 @@ export function PromptSuite(props: PromptSuiteProps) {
     const [copied, setCopied] = useState(false);
     const [viewMode, setViewMode] = useState<ViewMode>('form');
     const [orphanVars, setOrphanVars] = useState<string[]>([]);
+    const [notice, setNotice] = useState<string | null>(null);
+    const [aiOptimize, setAiOptimize] = useState<boolean>(() => {
+        try { return localStorage.getItem('nexus.aiOptimize') !== '0'; } catch { return true; }
+    });
     const generateFnRef = useRef<(() => void) | null>(null);
 
-    const stripMarkdownFences = (text: string): string => {
-        return sanitizeAIOutput(text
-            .replace(/^```(?:markdown|md)?\s*\n/, '')
-            .replace(/\n```\s*$/, ''));
+    // Versiones de IA (v1 = optimización, siguientes = refinados/ediciones) y vínculo con el historial.
+    const [versions, setVersions] = useState<PromptVersion[]>([]);
+    const [versionIdx, setVersionIdx] = useState(-1);
+    const [entryId, setEntryId] = useState<string | null>(null);
+    const [formVersion, setFormVersion] = useState(0);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const versionsRef = useRef<PromptVersion[]>([]);
+    const metaRef = useRef<{ title: string; createdAt: number; snapshot: Record<string, unknown> }>({ title: '', createdAt: 0, snapshot: {} });
+    const restoreRef = useRef<HistoryEntry | null>(null);
+    const history = useHistory();
+    const entriesRef = useRef<HistoryEntry[]>([]);
+    entriesRef.current = history.entries;
+
+    const updateVersions = (next: PromptVersion[], idx: number) => {
+        versionsRef.current = next;
+        setVersions(next);
+        setVersionIdx(idx);
+    };
+    const addVersion = (text: string) => {
+        const next = [...versionsRef.current, { label: `v${versionsRef.current.length + 1}`, text }];
+        updateVersions(next, next.length - 1);
     };
 
-    const displayResult = aiResult ? stripMarkdownFences(aiResult) : '';
+    const aiText = versions[versionIdx]?.text ?? '';
+    // Si la IA no responde (o está desactivada) se muestra el prompt base.
+    const displayResult = aiText || staticPrompt;
+    const usingAI = versionIdx >= 0 && aiText.length > 0;
     const activeError = aiError || promptError;
     const isLoading = isGeneratingPrompt || isThinking;
 
@@ -89,9 +132,53 @@ export function PromptSuite(props: PromptSuiteProps) {
 
     useEffect(() => {
         resetPrompt();
+        resetInference();
         setViewMode('form');
         setOrphanVars([]);
+        setNotice(null);
+        updateVersions([], -1);
+        setEntryId(null);
+        if (restoreRef.current) {
+            applyRestore(restoreRef.current);
+            restoreRef.current = null;
+        }
     }, [activeTab]);
+
+    // Guarda/actualiza la entrada del historial (con debounce para no cifrar en cada tecla al editar).
+    useEffect(() => {
+        if (!entryId || !staticPrompt || isThinking) return;
+        const id = setTimeout(() => {
+            const prev = entriesRef.current.find(e => e.id === entryId);
+            history.save({
+                id: entryId,
+                module: activeTab,
+                title: metaRef.current.title,
+                createdAt: metaRef.current.createdAt,
+                updatedAt: Date.now(),
+                favorite: prev?.favorite ?? false,
+                basePrompt: staticPrompt,
+                versions,
+                activeVersion: versionIdx,
+                snapshot: metaRef.current.snapshot,
+                model: settings.model,
+            });
+        }, 600);
+        return () => clearTimeout(id);
+    }, [entryId, staticPrompt, versions, versionIdx, isThinking]);
+
+    useEffect(() => {
+        if (!notice) return;
+        const id = setTimeout(() => setNotice(null), 4000);
+        return () => clearTimeout(id);
+    }, [notice]);
+
+    const toggleAiOptimize = useCallback(() => {
+        setAiOptimize(prev => {
+            const next = !prev;
+            try { localStorage.setItem('nexus.aiOptimize', next ? '1' : '0'); } catch { /* ignore */ }
+            return next;
+        });
+    }, []);
 
     const handleTriggerGenerate = useCallback(() => {
         if (generateFnRef.current) {
@@ -113,19 +200,78 @@ export function PromptSuite(props: PromptSuiteProps) {
         }
     }, [displayResult]);
 
+    const runAI = async (base: string, userMsg: string, system: string) => {
+        const response = await runInference(userMsg, false, system);
+        if (!response) return;
+        const clean = stripMarkdownFences(response);
+        addVersion(clean);
+        detectOrphans(base, clean);
+    };
+
     const handleRunAI = useCallback(async () => {
         if (!staticPrompt) return;
-        const response = await runInference(staticPrompt, false, PROMPT_ARCHITECT_SYSTEM(lang));
-        detectOrphans(staticPrompt, response);
+        await runAI(staticPrompt, staticPrompt, PROMPT_ARCHITECT_SYSTEM(lang));
     }, [staticPrompt, lang, runInference]);
 
+    const handleRefine = async (instruction: string) => {
+        const base = currentText({ basePrompt: staticPrompt, versions, activeVersion: versionIdx });
+        const userMsg = `PROMPT:\n${base}\n\nINSTRUCTION:\n${instruction}`;
+        await runAI(staticPrompt, userMsg, REFINE_SYSTEM(lang));
+    };
+
+    const handleEdit = (text: string) => {
+        if (versionIdx < 0) {
+            addVersion(text);
+        } else {
+            updateVersions(versionsRef.current.map((v, i) => (i === versionIdx ? { ...v, text } : v)), versionIdx);
+        }
+        detectOrphans(staticPrompt, text);
+    };
+
+    const captureSnapshot = (): Record<string, unknown> => {
+        const snap: Record<string, unknown> = {};
+        for (const key of SNAPSHOT_KEYS[activeTab] ?? []) {
+            const v = getSessionValue<unknown>(key);
+            if (v !== undefined) snap[key] = v;
+        }
+        return snap;
+    };
+
     const handleGenerateStatic = async (p: string) => {
+        setNotice(null);
         resetInference();
+        updateVersions([], -1);
         generate(p);
         detectOrphans(p);
-        const response = await runInference(p, false, PROMPT_ARCHITECT_SYSTEM(lang));
-        detectOrphans(p, response);
         setViewMode('split');
+        const snapshot = captureSnapshot();
+        const id = `h_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+        metaRef.current = { title: deriveTitle(snapshot, p, t(`nav.${activeTab}`, suiteLang)), createdAt: Date.now(), snapshot };
+        setEntryId(id);
+        if (!aiOptimize) return;
+        await runAI(p, p, PROMPT_ARCHITECT_SYSTEM(lang));
+    };
+
+    // Restaura una entrada del historial: formulario + prompt + versiones.
+    const applyRestore = (e: HistoryEntry) => {
+        resetInference();
+        generate(e.basePrompt);
+        updateVersions(e.versions, e.activeVersion);
+        metaRef.current = { title: e.title, createdAt: e.createdAt, snapshot: e.snapshot };
+        setEntryId(e.id);
+        setOrphanVars(collectOrphanVars(e.basePrompt, e.versions[e.activeVersion]?.text));
+        setViewMode('split');
+    };
+
+    const handleReopen = (e: HistoryEntry) => {
+        Object.entries(e.snapshot).forEach(([k, v]) => setSessionValue(k, v));
+        setFormVersion(v => v + 1);
+        if (e.module === activeTab) {
+            applyRestore(e);
+        } else {
+            restoreRef.current = e;
+            onTabChange(e.module);
+        }
     };
 
     const suiteLang = lang as 'es' | 'en';
@@ -139,14 +285,15 @@ export function PromptSuite(props: PromptSuiteProps) {
         const registerGenerate = (fn: () => void) => {
             generateFnRef.current = fn;
         };
+        const onInvalid = (msg: string) => setNotice(msg);
 
         switch (activeTab) {
-            case 'genesis': return <SuiteGenesis onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} />;
-            case 'dev': return <SuiteDev onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} />;
-            case 'audit': return <SuiteAudit onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} />;
-            case 'studio': return <SuiteStudio onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} />;
-            case 'social': return <SuiteSocial onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} />;
-            case 'templates': return <SuiteTemplates onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} />;
+            case 'genesis': return <SuiteGenesis key={formVersion} onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} onInvalid={onInvalid} />;
+            case 'dev': return <SuiteDev key={formVersion} onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} onInvalid={onInvalid} />;
+            case 'audit': return <SuiteAudit key={formVersion} onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} onInvalid={onInvalid} />;
+            case 'studio': return <SuiteStudio key={formVersion} onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} onInvalid={onInvalid} />;
+            case 'social': return <SuiteSocial key={formVersion} onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} onInvalid={onInvalid} />;
+            case 'templates': return <SuiteTemplates key={formVersion} onGenerate={handleGenerateStatic} lang={suiteLang} onRegisterGenerate={registerGenerate} onInvalid={onInvalid} />;
             default: return null;
         }
     };
@@ -177,7 +324,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                         )}
                     >
                         <Settings2 size={12} />
-                        <span className="hidden sm:inline">Form</span>
+                        <span className="hidden sm:inline">{t('suite.view.form', suiteLang)}</span>
                     </button>
                     <button
                         onClick={() => setViewMode('prompt')}
@@ -187,7 +334,7 @@ export function PromptSuite(props: PromptSuiteProps) {
                         )}
                     >
                         <FileText size={12} />
-                        <span className="hidden sm:inline">Prompt</span>
+                        <span className="hidden sm:inline">{t('suite.view.prompt', suiteLang)}</span>
                     </button>
                     <button
                         onClick={() => setViewMode('split')}
@@ -197,11 +344,11 @@ export function PromptSuite(props: PromptSuiteProps) {
                         )}
                     >
                         <Columns size={12} />
-                        <span className="hidden sm:inline">Split</span>
+                        <span className="hidden sm:inline">{t('suite.view.split', suiteLang)}</span>
                     </button>
                 </div>
 
-                {hasPrompt && displayResult && (
+                {hasPrompt && displayResult && !isLoading && (
                     <button
                         onClick={handleCopy}
                         className={cn(
@@ -210,12 +357,66 @@ export function PromptSuite(props: PromptSuiteProps) {
                         )}
                     >
                         {copied ? <Check size={14} /> : <Copy size={14} />}
-                        <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+                        <span className="hidden sm:inline">{copied ? t('suite.copied', suiteLang) : t('suite.copy', suiteLang)}</span>
                     </button>
                 )}
 
                 <div className="flex-1" />
+
+                <button
+                    type="button"
+                    onClick={() => setHistoryOpen(true)}
+                    className="flex items-center gap-2 px-3 h-8 rounded-lg text-xs font-bold border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                    <History size={14} />
+                    <span className="hidden sm:inline">{t('history.title', suiteLang)}</span>
+                    {history.entries.length > 0 && (
+                        <span className="px-1.5 rounded-full bg-primary/20 text-primary text-[10px]">{history.entries.length}</span>
+                    )}
+                </button>
+
+                <span className="hidden 2xl:inline text-xs text-muted-foreground max-w-[220px] leading-tight">
+                    {aiOptimize ? t('mode.ai.desc', suiteLang).replace('{{model}}', settings.model) : t('mode.noai.desc', suiteLang)}
+                </span>
+
+                <div role="radiogroup" aria-label={t('mode.label', suiteLang)} className="flex items-center rounded-lg border-2 border-border bg-background p-0.5 gap-0.5 h-9 shrink-0">
+                    <button
+                        type="button"
+                        role="radio"
+                        aria-checked={aiOptimize}
+                        onClick={() => !aiOptimize && toggleAiOptimize()}
+                        title={t('mode.ai.desc', suiteLang).replace('{{model}}', settings.model)}
+                        className={cn(
+                            "flex items-center gap-1.5 px-3 h-full rounded-md text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                            aiOptimize ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        )}
+                    >
+                        <Sparkles size={13} />
+                        {t('mode.ai', suiteLang)}
+                    </button>
+                    <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!aiOptimize}
+                        onClick={() => aiOptimize && toggleAiOptimize()}
+                        title={t('mode.noai.desc', suiteLang)}
+                        className={cn(
+                            "flex items-center gap-1.5 px-3 h-full rounded-md text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                            !aiOptimize ? "bg-emerald-600 text-white shadow" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        )}
+                    >
+                        <Zap size={13} />
+                        {t('mode.noai', suiteLang)}
+                    </button>
+                </div>
             </div>
+
+            {notice && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-400/40 bg-amber-500/10 text-amber-200 text-sm shrink-0" role="alert">
+                    <AlertCircle size={14} className="shrink-0" />
+                    {notice}
+                </div>
+            )}
 
             <LLMStatusIndicator
                 isThinking={isThinking}
@@ -239,12 +440,19 @@ export function PromptSuite(props: PromptSuiteProps) {
                         <SuiteOutputPanel
                             staticPrompt={staticPrompt}
                             displayResult={displayResult}
+                            usingAI={usingAI}
+                            aiRequested={aiOptimize}
                             activeError={activeError}
                             isThinking={isThinking}
                             isLoading={isLoading}
                             onRegenerate={handleRunAI}
                             lang={suiteLang}
                             orphanVars={orphanVars}
+                            versionLabels={versions.map(v => v.label)}
+                            versionIdx={versionIdx}
+                            onSelectVersion={setVersionIdx}
+                            onRefine={handleRefine}
+                            onEdit={handleEdit}
                         />
                     </div>
                 )}
@@ -261,17 +469,35 @@ export function PromptSuite(props: PromptSuiteProps) {
                             <SuiteOutputPanel
                                 staticPrompt={staticPrompt}
                                 displayResult={displayResult}
+                                usingAI={usingAI}
+                                aiRequested={aiOptimize}
                                 activeError={activeError}
                                 isThinking={isThinking}
                                 isLoading={isLoading}
                                 onRegenerate={handleRunAI}
                                 lang={suiteLang}
                                 orphanVars={orphanVars}
+                                versionLabels={versions.map(v => v.label)}
+                                versionIdx={versionIdx}
+                                onSelectVersion={setVersionIdx}
+                                onRefine={handleRefine}
+                                onEdit={handleEdit}
                             />
                         </div>
                     </div>
                 )}
             </div>
+            <HistoryPanel
+                open={historyOpen}
+                lang={suiteLang}
+                entries={history.entries}
+                onClose={() => setHistoryOpen(false)}
+                onReopen={handleReopen}
+                onToggleFavorite={history.toggleFavorite}
+                onRemove={history.remove}
+                onClearAll={history.clearNonFavorites}
+                onImport={history.importEntries}
+            />
         </div>
     );
 }

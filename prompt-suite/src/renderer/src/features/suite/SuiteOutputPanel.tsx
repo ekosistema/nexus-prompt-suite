@@ -1,18 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { t } from '../../lib/i18n';
-import { Copy, Check, Download, Sparkles, RefreshCw, ClipboardList, Maximize2, X, AlertTriangle } from 'lucide-react';
+import { Copy, Check, Download, Sparkles, RefreshCw, ClipboardList, Maximize2, X, AlertTriangle, Zap, Pencil, Send } from 'lucide-react';
 
 interface SuiteOutputPanelProps {
-    staticPrompt: string;      // prompt bruto compuesto (fallback mientras carga)
-    displayResult: string;     // prompt optimizado por la IA (texto a copiar)
+    staticPrompt: string;      // prompt base compuesto por el formulario
+    displayResult: string;     // texto a mostrar/copiar: versión activa (IA o base)
+    usingAI: boolean;          // true si displayResult proviene de la IA
+    aiRequested: boolean;      // true si el usuario pidió optimizar con IA
     activeError: string | null;
     isThinking: boolean;
     isLoading: boolean;
-    onRegenerate?: () => void; // re-ejecuta la personalizacion IA
+    onRegenerate?: () => void; // re-ejecuta la optimización IA sobre el prompt base
     lang: 'es' | 'en';
     orphanVars?: string[];     // variables sin rellenar detectadas en el prompt generado
+    versionLabels: string[];   // etiquetas de las versiones de IA (v1, v2…)
+    versionIdx: number;        // -1 = base
+    onSelectVersion: (idx: number) => void;
+    onRefine: (instruction: string) => void;
+    onEdit: (text: string) => void;
 }
 
 function downloadAsFile(content: string): void {
@@ -25,22 +32,37 @@ function downloadAsFile(content: string): void {
     URL.revokeObjectURL(url);
 }
 
+const CHIPS = ['refine.shorter', 'refine.detailed', 'refine.technical', 'refine.examples', 'refine.formal', 'refine.casual', 'refine.translate'];
+
 export function SuiteOutputPanel({
     staticPrompt,
     displayResult,
+    usingAI,
+    aiRequested,
     activeError,
     isThinking,
     isLoading,
     onRegenerate,
     lang,
     orphanVars = [],
+    versionLabels,
+    versionIdx,
+    onSelectVersion,
+    onRefine,
+    onEdit,
 }: SuiteOutputPanelProps) {
     const [copied, setCopied] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState('');
+    const [instruction, setInstruction] = useState('');
 
     const copyText = displayResult || staticPrompt;
     const hasResult = displayResult.length > 0;
-    const title = hasResult ? t('output.optimized', lang) : t('output.generated', lang);
+    const title = usingAI ? t('output.optimized', lang) : (hasResult ? t('output.base', lang) : t('output.generated', lang));
+
+    // Al cambiar de versión se cancela cualquier edición en curso.
+    useEffect(() => { setEditing(false); }, [versionIdx, staticPrompt]);
 
     const handleCopy = async () => {
         if (!copyText) return;
@@ -53,27 +75,79 @@ export function SuiteOutputPanel({
         }
     };
 
+    const startEdit = () => { setDraft(copyText); setEditing(true); };
+    const saveEdit = () => {
+        if (draft.trim() && draft !== copyText) onEdit(draft);
+        setEditing(false);
+    };
+
+    const submitRefine = (text: string) => {
+        const value = text.trim();
+        if (!value || isThinking) return;
+        onRefine(value);
+        setInstruction('');
+    };
+
+    const versionBtn = (active: boolean) => cn(
+        "px-2.5 py-1 rounded-md text-xs font-mono border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        active ? "bg-primary/20 border-primary/50 text-primary font-bold" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+    );
+
     return (
         <div className="bg-background border border-border rounded-xl shadow-lg flex flex-col overflow-hidden flex-1">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5 shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-white/10 bg-white/5 shrink-0">
                 <span className="text-xs font-mono text-muted-foreground uppercase flex items-center gap-2">
                     <ClipboardList size={14} />
                     {title}
+                    {hasResult && (
+                        <span className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold normal-case border",
+                            usingAI ? "bg-primary/15 text-primary border-primary/40" : "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+                        )}>
+                            {usingAI ? <Sparkles size={10} /> : <Zap size={10} />}
+                            {usingAI ? t('mode.ai', lang) : t('mode.noai', lang)}
+                        </span>
+                    )}
                 </span>
-                {onRegenerate && hasResult && (
-                    <button
-                        onClick={onRegenerate}
-                        disabled={isThinking}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                        <RefreshCw size={12} className={isThinking ? 'animate-spin' : ''} />
-                        {t('output.regenerate', lang)}
-                    </button>
-                )}
+                <div className="flex items-center gap-2">
+                    {hasResult && !editing && (
+                        <button
+                            onClick={startEdit}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        >
+                            <Pencil size={12} />
+                            {t('output.edit', lang)}
+                        </button>
+                    )}
+                    {onRegenerate && hasResult && aiRequested && (
+                        <button
+                            onClick={onRegenerate}
+                            disabled={isThinking}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                            <RefreshCw size={12} className={isThinking ? 'animate-spin' : ''} />
+                            {t('output.regenerate', lang)}
+                        </button>
+                    )}
+                </div>
             </div>
 
+            {hasResult && versionLabels.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 px-4 py-2 border-b border-white/5 shrink-0" role="tablist" aria-label={t('output.versions', lang)}>
+                    <span className="text-[10px] uppercase text-muted-foreground mr-1">{t('output.versions', lang)}</span>
+                    <button role="tab" aria-selected={versionIdx === -1} onClick={() => onSelectVersion(-1)} className={versionBtn(versionIdx === -1)}>
+                        {t('output.version.base', lang)}
+                    </button>
+                    {versionLabels.map((label, i) => (
+                        <button key={label} role="tab" aria-selected={versionIdx === i} onClick={() => onSelectVersion(i)} className={versionBtn(versionIdx === i)}>
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="flex-1 min-h-0 p-4 overflow-y-auto relative">
-                {isLoading && !displayResult && (
+                {isLoading && !hasResult && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
                         <LoadingSpinner size="md" label={isThinking ? t('output.thinking', lang) : t('output.generating_prompt', lang)} />
                     </div>
@@ -82,6 +156,7 @@ export function SuiteOutputPanel({
                 {activeError && (
                     <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive text-sm mb-4" role="alert">
                         <strong>{t('output.error', lang)}</strong> {activeError}
+                        {hasResult && !usingAI && <p className="mt-1 text-xs opacity-80">{t('output.ai_failed', lang)}</p>}
                     </div>
                 )}
 
@@ -113,6 +188,23 @@ export function SuiteOutputPanel({
                         <h3 className="text-lg font-bold mb-2">{t('output.waiting', lang)}</h3>
                         <p className="text-sm">{t('output.waiting_desc', lang)}</p>
                     </div>
+                ) : editing ? (
+                    <div className="flex flex-col gap-2 h-full min-h-[240px]">
+                        <textarea
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            aria-label={t('output.edit', lang)}
+                            className="flex-1 min-h-[220px] w-full resize-none font-mono text-sm text-zinc-200 bg-zinc-900/70 p-4 rounded-lg border border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        />
+                        <div className="flex gap-2">
+                            <button onClick={saveEdit} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90">
+                                {t('output.edit.save', lang)}
+                            </button>
+                            <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg border border-border bg-secondary/50 text-xs font-bold text-muted-foreground hover:text-foreground">
+                                {t('output.edit.cancel', lang)}
+                            </button>
+                        </div>
+                    </div>
                 ) : (
                     <pre className="whitespace-pre-wrap font-mono text-sm text-zinc-300 bg-zinc-900/50 p-4 rounded-lg border border-white/5">
                         {displayResult}
@@ -126,6 +218,41 @@ export function SuiteOutputPanel({
                     </div>
                 )}
             </div>
+
+            {hasResult && !editing && (
+                <div className="shrink-0 px-4 pb-3 space-y-2 border-t border-white/5 pt-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] uppercase text-muted-foreground mr-1">{t('refine.title', lang)}</span>
+                        {CHIPS.map(key => (
+                            <button
+                                key={key}
+                                disabled={isThinking}
+                                onClick={() => submitRefine(t(key, lang))}
+                                className="px-2.5 py-1 rounded-full text-xs border border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                            >
+                                {t(key, lang)}
+                            </button>
+                        ))}
+                    </div>
+                    <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); submitRefine(instruction); }}>
+                        <input
+                            value={instruction}
+                            onChange={(e) => setInstruction(e.target.value)}
+                            placeholder={t('refine.placeholder', lang)}
+                            aria-label={t('refine.title', lang)}
+                            className="flex-1 bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        />
+                        <button
+                            type="submit"
+                            disabled={isThinking || !instruction.trim()}
+                            className="flex items-center gap-1.5 px-4 rounded-md bg-primary/15 text-primary border border-primary/40 text-xs font-bold hover:bg-primary/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <Send size={13} />
+                            {t('refine.apply', lang)}
+                        </button>
+                    </form>
+                </div>
+            )}
 
             {hasResult && (
                 <div className="flex flex-wrap items-center gap-2 shrink-0 px-4 pb-4 pt-0">
@@ -169,7 +296,7 @@ export function SuiteOutputPanel({
                             <button
                                 onClick={() => setModalOpen(false)}
                                 className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-white/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                                aria-label={t('output.viewFull', lang)}
+                                aria-label={t('output.close', lang)}
                             >
                                 <X size={18} />
                             </button>

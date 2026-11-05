@@ -23,7 +23,7 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             name: "OpenAI".into(),
             icon: "🌐".into(),
             default_url: "https://api.openai.com".into(),
-            default_models: vec!["gpt-4o".into(), "gpt-4o-mini".into(), "o1".into()],
+            default_models: vec!["gpt-4o".into(), "gpt-4o-mini".into()],
             needs_api_key: true,
             supports_api_key: true,
             keyring_suffix: "openai_key".into(),
@@ -39,7 +39,7 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             name: "OpenRouter".into(),
             icon: "🔀".into(),
             default_url: "https://openrouter.ai".into(),
-            default_models: vec!["openai/gpt-4o".into(), "anthropic/claude-3.5-sonnet".into()],
+            default_models: vec!["openai/gpt-4o".into(), "anthropic/claude-sonnet-5-5".into()],
             needs_api_key: true,
             supports_api_key: true,
             keyring_suffix: "openrouter_key".into(),
@@ -56,9 +56,8 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             icon: "⚡".into(),
             default_url: "https://api.groq.com/openai".into(),
             default_models: vec![
-                "llama-3.1-70b-versatile".into(),
+                "llama-3.3-70b-versatile".into(),
                 "llama-3.1-8b-instant".into(),
-                "mixtral-8x7b-32768".into(),
             ],
             needs_api_key: true,
             supports_api_key: true,
@@ -124,8 +123,7 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             icon: "🤝".into(),
             default_url: "https://api.together.xyz".into(),
             default_models: vec![
-                "meta-llama/Llama-3.1-70B-Instruct-Turbo".into(),
-                "mistralai/Mixtral-8x7B-Instruct-v0.1".into(),
+                "meta-llama/Llama-3.3-70B-Instruct-Turbo".into(),
             ],
             needs_api_key: true,
             supports_api_key: true,
@@ -143,15 +141,15 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             icon: "🧠".into(),
             default_url: "https://api.anthropic.com".into(),
             default_models: vec![
-                "claude-sonnet-4-20250514".into(),
-                "claude-opus-4-20250514".into(),
-                "claude-3-5-haiku-20241022".into(),
+                "claude-sonnet-5-5".into(),
+                "claude-opus-5-5".into(),
+                "claude-haiku-5-5".into(),
             ],
             needs_api_key: true,
             supports_api_key: true,
             keyring_suffix: "anthropic_key".into(),
             api_path: "/v1/messages".into(),
-            models_endpoint: "".into(),
+            models_endpoint: "/v1/models".into(),
             is_openai_compat: false,
             description: "Claude Sonnet, Opus, Haiku".into(),
             cost_tier: "$$$".into(),
@@ -162,7 +160,7 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             name: "Google Gemini".into(),
             icon: "💎".into(),
             default_url: "https://generativelanguage.googleapis.com".into(),
-            default_models: vec!["gemini-2.0-flash".into(), "gemini-2.5-pro".into()],
+            default_models: vec!["gemini-2.5-flash".into(), "gemini-2.5-pro".into()],
             needs_api_key: true,
             supports_api_key: true,
             keyring_suffix: "gemini_key".into(),
@@ -227,6 +225,35 @@ pub fn all_providers() -> Vec<ProviderInfo> {
             docs_url: "https://opencode.ai".into(),
         },
     ]
+}
+
+/// Resolves the base URL a request will be sent to.
+///
+/// API keys are attached automatically from the OS keychain, so providers whose
+/// default endpoint is a public cloud API only accept that same host (HTTPS).
+/// Otherwise a tampered `endpoint` setting could redirect the key to a third party.
+/// Self-hosted providers (Ollama, LM Studio, vLLM, OpenWebUI) keep a free endpoint.
+pub fn resolve_base_url(info: &ProviderInfo, endpoint: &str) -> Result<String, String> {
+    if endpoint.is_empty() || !endpoint.starts_with("http") {
+        return Ok(info.default_url.clone());
+    }
+    let custom = endpoint.trim_end_matches('/').to_string();
+    if crate::is_localhost(&info.default_url) {
+        return Ok(custom);
+    }
+    let official = url::Url::parse(&info.default_url).map_err(|e| e.to_string())?;
+    let given = url::Url::parse(&custom).map_err(|e| format!("Invalid endpoint URL: {}", e))?;
+    let same_origin = given.scheme() == "https"
+        && given.host_str() == official.host_str()
+        && given.port_or_known_default() == official.port_or_known_default();
+    if same_origin {
+        Ok(custom)
+    } else {
+        Err(format!(
+            "{} only accepts its official endpoint ({}). Reset the endpoint in Settings.",
+            info.name, info.default_url
+        ))
+    }
 }
 
 pub fn get_provider_info(id: &str) -> Option<ProviderInfo> {

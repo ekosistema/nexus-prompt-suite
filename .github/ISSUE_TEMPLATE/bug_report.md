@@ -1,47 +1,44 @@
 ---
-name: 🐛 Bug Report
-about: Report a reproducible bug in Nexus Prompt Suite
+name: 🐛 Bug report
+about: Something isn't working as expected
 title: '[Bug]: '
 labels: ['bug', 'triage']
 assignees: []
 ---
 
-## 🐛 Bug Description
+> 🔒 **Security issue?** Please don't use this form. See the
+> [security policy](https://github.com/ekosistema/nexus-prompt-suite/security/policy).
+> And never paste an API key here.
 
-A clear and concise description of what the bug is.
+## 🐛 What happened?
 
-## 🔍 Steps to Reproduce
+A clear, short description of the problem.
 
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+## 🔁 Steps to reproduce
 
-## ✅ Expected Behavior
+1. Open the '...' workspace
+2. Click '...'
+3. See the error
 
-A clear description of what you expected to happen.
+## ✅ What did you expect?
 
-## ❌ Actual Behavior
-
-What actually happened. Include error messages, screenshots, or logs if available.
+What should have happened instead.
 
 ## 📋 Environment
 
 | Detail | Value |
 | :--- | :--- |
-| **Nexus version** | e.g., 1.1.0 |
-| **Operating system** | e.g., macOS 15.1, Windows 11, Ubuntu 24.04 |
-| **Architecture** | e.g., Apple Silicon (aarch64), x86_64 |
-| **AI provider** | e.g., OpenAI, Ollama, Anthropic |
-| **AI model** | e.g., gpt-4o, llama3, claude-3-5-sonnet |
-| **Install method** | e.g., .dmg installer, built from source |
+| **Nexus version** | e.g. 1.3.0 (bottom of the sidebar) |
+| **Operating system** | e.g. Windows 11, macOS 15, Ubuntu 24.04 |
+| **Architecture** | e.g. x86_64, Apple Silicon |
+| **AI provider** | e.g. Ollama, OpenAI, Anthropic |
+| **Model** | e.g. llama3.2, gpt-4o, claude-sonnet-5-5 |
+| **Mode** | With AI / No AI |
+| **Installed from** | Installer, or built from source |
 
-## 📎 Additional Context
+## 📎 Anything else?
 
-- Does the bug happen consistently or intermittently?
-- Did it work in a previous version?
-- Any relevant logs from the app or terminal output?
-
----
-
-**Thank you for helping improve Nexus Prompt Suite.**
+- Screenshots or a screen recording
+- Does it happen every time, or only sometimes?
+- Did it work in an earlier version?
+- Relevant log output (with any keys removed)

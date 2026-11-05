@@ -82,9 +82,18 @@ impl DefaultAiEngine {
         }
 
         let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
-        Ok(json["candidates"][0]["content"]["parts"][0]["text"]
-            .as_str()
-            .unwrap_or("")
-            .to_string())
+        // Thinking models return several parts; keep only the visible text parts.
+        let text = json["candidates"][0]["content"]["parts"]
+            .as_array()
+            .map(|parts| {
+                parts
+                    .iter()
+                    .filter(|p| p["thought"].as_bool() != Some(true))
+                    .filter_map(|p| p["text"].as_str())
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .unwrap_or_default();
+        Ok(text)
     }
 }

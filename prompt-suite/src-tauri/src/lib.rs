@@ -43,28 +43,11 @@ fn save_settings(app: tauri::AppHandle, mut settings: serde_json::Value) -> Resu
     }
 
     let content = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    if content.len() as u64 > MAX_SETTINGS_FILE_SIZE {
+        return Err("Settings payload exceeds 1MB".into());
+    }
     std::fs::write(path, content).map_err(|e| e.to_string())?;
     Ok(true)
-}
-
-/// Securely stores an API key in the OS-native credential manager (legacy).
-#[tauri::command]
-fn save_api_key_secure(key: String) -> Result<bool, String> {
-    let entry =
-        keyring::Entry::new("prompt-suite-ia", "user_api_key").map_err(|e| e.to_string())?;
-    entry.set_password(&key).map_err(|e| e.to_string())?;
-    Ok(true)
-}
-
-/// Retrieves the stored API key from the OS-native credential manager (legacy).
-#[tauri::command]
-fn get_api_key_secure() -> Result<String, String> {
-    let entry =
-        keyring::Entry::new("prompt-suite-ia", "user_api_key").map_err(|e| e.to_string())?;
-    match entry.get_password() {
-        Ok(pw) => Ok(pw),
-        Err(_) => Ok("".to_string()),
-    }
 }
 
 /// Saves an API key for a specific provider in the OS keyring.
@@ -79,12 +62,26 @@ fn save_provider_api_key(provider: String, key: String) -> Result<bool, String> 
 
     let service = format!("prompt-suite-ia:{}", info.keyring_suffix);
     let entry = keyring::Entry::new(&service, "api_key").map_err(|e| e.to_string())?;
+    let key = key.trim();
     if key.is_empty() {
         let _ = entry.delete_credential();
     } else {
-        entry.set_password(&key).map_err(|e| e.to_string())?;
+        validate_api_key(key)?;
+        entry.set_password(key).map_err(|e| e.to_string())?;
     }
     Ok(true)
+}
+
+/// Rejects values that cannot be a real API key (and could break headers or the
+/// Windows credential blob limit). The key itself is never included in the error.
+fn validate_api_key(key: &str) -> Result<(), String> {
+    if key.len() > MAX_API_KEY_LEN {
+        return Err("API key is too long".into());
+    }
+    if key.chars().any(|c| c.is_control() || c.is_whitespace()) {
+        return Err("API key contains invalid characters".into());
+    }
+    Ok(())
 }
 
 /// Reports whether a provider has an API key stored in the OS keyring.
@@ -153,13 +150,54 @@ fn get_available_providers() -> Result<Vec<crate::ai::ProviderInfo>, String> {
     Ok(crate::ai::all_providers())
 }
 
+/// Keeps only models usable for chat for providers whose catalogue mixes in
+/// embeddings, speech, image and moderation models.
+fn is_chat_candidate(id: &str) -> bool {
+    const SKIP: &[&str] = &[
+        "embed", "whisper", "tts", "dall-e", "moderation", "transcribe", "realtime", "audio",
+        "image", "guard",
+    ];
+    let lower = id.to_lowercase();
+    !SKIP.iter().any(|w| lower.contains(w))
+}
+
+/// Extracts model ids from the different catalogue shapes providers use:
+/// `{"data":[{"id"}]}` (OpenAI-like), a bare array (Together), `{"models":[{"name"|"id"}]}`.
+fn parse_model_ids(json: &serde_json::Value, provider: &str) -> Vec<String> {
+    let list = json
+        .as_array()
+        .or_else(|| json.get("data").and_then(|d| d.as_array()))
+        .or_else(|| json.get("models").and_then(|m| m.as_array()));
+    let mut ids: Vec<String> = list
+        .map(|items| {
+            items
+                .iter()
+                // Together lists image/embedding models too; keep chat ones when typed.
+                .filter(|m| m.get("type").and_then(|t| t.as_str()).map_or(true, |t| t == "chat"))
+                .filter_map(|m| {
+                    m.get("id")
+                        .and_then(|v| v.as_str())
+                        .or_else(|| m.get("name").and_then(|v| v.as_str()))
+                })
+                .map(|s| s.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    if matches!(provider, "openai" | "groq") {
+        ids.retain(|id| is_chat_candidate(id));
+    }
+    ids.sort();
+    ids.dedup();
+    ids
+}
+
 /// Lists models available from a provider.
+///
+/// The API key is always resolved from the OS keychain inside Rust; the renderer
+/// cannot supply one. Redirects are disabled so credentials never follow a 3xx to
+/// another host (reqwest only strips `Authorization`, not `x-api-key`).
 #[tauri::command]
-async fn list_provider_models(
-    provider: String,
-    endpoint: String,
-    api_key: Option<String>,
-) -> Result<Vec<String>, String> {
+async fn list_provider_models(provider: String, endpoint: String) -> Result<Vec<String>, String> {
     let info = crate::ai::get_provider_info(&provider)
         .ok_or_else(|| format!("Unknown provider: {}", provider))?;
 
@@ -169,101 +207,47 @@ async fn list_provider_models(
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(MODELS_FETCH_TIMEOUT_SECS))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
 
-    let base = if endpoint.is_empty() {
-        info.default_url.clone()
-    } else {
-        endpoint.trim_end_matches('/').to_string()
-    };
-
+    let base = crate::ai::resolve_base_url(&info, &endpoint)?;
     let engine = crate::ai::DefaultAiEngine::new();
+    let resolved_key = engine.resolve_api_key(&provider, None, false).await?;
 
-    // Resolve the key from the keyring when not provided by the caller,
-    // so a saved key is never silently ignored.
-    let resolved_key = engine.resolve_api_key(&provider, api_key, false).await?;
+    let key_required = || format!("{} API key is required. Add it in Settings.", info.name);
 
-    if matches!(Provider::from_str(&provider), Ok(Provider::Ollama)) {
-        let url = format!("{}{}", base, info.models_endpoint);
-        let mut req = client.get(&url);
-        if let Some(key) = &resolved_key {
-            req = req.bearer_auth(key);
-        }
-        let res = req
-            .send()
-            .await
-            .map_err(|e| format!("Cannot connect to {}: {}", info.name, e))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let body = res.text().await.unwrap_or_default();
-            return Err(format!("API error {}: {}", status.as_u16(), body));
-        }
-
-        let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
-        let models = json["models"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
-            .collect::<Vec<String>>();
-        return Ok(models);
-    }
-
-    if provider == "gemini" {
-        let url = format!("{}{}", base, info.models_endpoint);
-        let key = resolved_key.ok_or_else(|| {
-            format!("{} API key is required. Add it in Settings.", info.name)
-        })?;
-        let res = client
-            .get(&url)
-            .header("x-goog-api-key", &key)
-            .send()
-            .await
-            .map_err(|e| format!("Cannot connect to {}: {}", info.name, e))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let body = res.text().await.unwrap_or_default();
-            return Err(format!("API error {}: {}", status.as_u16(), body));
-        }
-
-        let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
-        let models = json["models"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .filter_map(|m| m["name"].as_str())
-            .filter_map(|name| name.strip_prefix("models/").map(|s| s.to_string()))
-            .collect::<Vec<String>>();
-        return Ok(models);
-    }
-
+    // Providers without a catalogue endpoint fall back to the built-in list.
     if info.models_endpoint.is_empty() {
-        // Provider doesn't expose a public models endpoint (Anthropic)
         return Ok(info.default_models.clone());
     }
 
-    let url = format!("{}{}", base, info.models_endpoint);
-    let mut req = client.get(&url);
-
-    if info.needs_api_key {
-        match &resolved_key {
-            Some(k) => {
-                req = req.bearer_auth(k);
-            }
-            None => {
-                return Err(format!(
-                    "{} API key is required. Add it in Settings.",
-                    info.name
-                ))
-            }
+    let mut url = format!("{}{}", base, info.models_endpoint);
+    let mut req;
+    match Provider::from_str(&provider) {
+        Ok(Provider::Gemini) => {
+            let key = resolved_key.ok_or_else(key_required)?;
+            url.push_str("?pageSize=1000");
+            req = client.get(&url).header("x-goog-api-key", key);
         }
-    } else if info.supports_api_key {
-        // Optional API key - use if available, but don't require it
-        if let Some(key) = &resolved_key {
-            req = req.bearer_auth(key);
+        Ok(Provider::Anthropic) => {
+            // Without a key there is nothing to query yet: offer the defaults quietly.
+            let Some(key) = resolved_key else {
+                return Ok(info.default_models.clone());
+            };
+            url.push_str("?limit=1000");
+            req = client
+                .get(&url)
+                .header("x-api-key", key)
+                .header("anthropic-version", "2023-06-01");
+        }
+        _ => {
+            req = client.get(&url);
+            match (&resolved_key, info.needs_api_key) {
+                (Some(k), _) => req = req.bearer_auth(k),
+                (None, true) => return Err(key_required()),
+                (None, false) => {}
+            }
         }
     }
 
@@ -274,42 +258,52 @@ async fn list_provider_models(
 
     if !res.status().is_success() {
         let status = res.status();
-        let body = res.text().await.unwrap_or_default();
-        return Err(format!("API error {}: {}", status.as_u16(), body));
+        // The body is dropped on purpose: error pages can echo request details.
+        return Err(format!(
+            "{} responded with HTTP {}. Check your API key and endpoint.",
+            info.name,
+            status.as_u16()
+        ));
     }
 
     let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
 
-    // Parse different model list formats
-    let models = if let Some(data) = json.get("data").and_then(|d| d.as_array()) {
-        data.iter()
-            .filter_map(|m| {
-                m.get("id")
-                    .and_then(|id| id.as_str())
-                    .map(|s| s.to_string())
+    let mut models = if matches!(Provider::from_str(&provider), Ok(Provider::Gemini)) {
+        // Only models that can generate text; names come as "models/<id>".
+        json["models"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter(|m| {
+                        m["supportedGenerationMethods"]
+                            .as_array()
+                            .is_some_and(|ms| ms.iter().any(|x| x.as_str() == Some("generateContent")))
+                    })
+                    .filter_map(|m| m["name"].as_str())
+                    .map(|n| n.strip_prefix("models/").unwrap_or(n).to_string())
+                    .collect::<Vec<_>>()
             })
-            .collect::<Vec<String>>()
-    } else if let Some(models) = json.get("models").and_then(|m| m.as_array()) {
-        models
-            .iter()
-            .filter_map(|m| {
-                m.get("name")
-                    .and_then(|n| n.as_str())
-                    .or_else(|| m.get("id").and_then(|id| id.as_str()))
-            })
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>()
+            .unwrap_or_default()
+    } else if matches!(Provider::from_str(&provider), Ok(Provider::Ollama)) {
+        json["models"]
+            .as_array()
+            .map(|items| items.iter().filter_map(|m| m["name"].as_str()).map(String::from).collect())
+            .unwrap_or_default()
     } else {
-        info.default_models.clone()
+        parse_model_ids(&json, &provider)
     };
 
+    if models.is_empty() {
+        models = info.default_models.clone();
+    }
     Ok(models)
 }
 
 /// Lists all models available in the local Ollama instance (legacy, kept for compatibility).
 #[tauri::command]
 async fn list_ollama_models(endpoint: String) -> Result<Vec<String>, String> {
-    list_provider_models("ollama".into(), endpoint, None).await
+    list_provider_models("ollama".into(), endpoint).await
 }
 
 pub mod ai;
@@ -321,6 +315,7 @@ use crate::ai::{AiEngine, DefaultAiEngine, Message, Provider};
 use std::str::FromStr;
 
 const MAX_SETTINGS_FILE_SIZE: u64 = 1_048_576;
+const MAX_API_KEY_LEN: usize = 1024;
 const MAX_MESSAGES: usize = 200;
 const MAX_MESSAGE_CONTENT_SIZE: usize = 131_072;
 const MAX_CONTEXT_SIZE: u32 = 1_048_576;
@@ -332,7 +327,7 @@ const MODELS_FETCH_TIMEOUT_SECS: u64 = 10;
 const ALLOWED_LOCAL_PORTS: &[u16] = &[80, 443, 11434, 1234, 8000, 8080, 3000, 5173, 5000, 4000, 31415];
 
 /// Keys the renderer may read/write/delete through `secure_storage_*` (M-02).
-const SECURE_STORAGE_ALLOWED_KEYS: &[&str] = &["app_cache", "session_nonce"];
+const SECURE_STORAGE_ALLOWED_KEYS: &[&str] = &["app_cache", "session_nonce", "nexus_storage_key"];
 
 fn strip_secrets(v: &mut serde_json::Value) {
     if let serde_json::Value::Object(m) = v {
@@ -354,7 +349,7 @@ pub(crate) fn is_localhost(endpoint: &str) -> bool {
     }
     if let Ok(parsed) = url::Url::parse(endpoint) {
         if let Some(host) = parsed.host_str() {
-            return host == "localhost" || host == "127.0.0.1" || host == "::1";
+            return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]";
         }
     }
     false
@@ -586,8 +581,6 @@ pub fn run() {
             list_ollama_models,
             list_provider_models,
             get_available_providers,
-            save_api_key_secure,
-            get_api_key_secure,
             save_provider_api_key,
             has_provider_api_key,
             secure_storage_set,

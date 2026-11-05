@@ -1,6 +1,6 @@
 use futures::StreamExt;
 
-use super::super::engine::{DefaultAiEngine, MAX_STREAM_SIZE};
+use super::super::engine::{DefaultAiEngine, LineBuffer, MAX_STREAM_SIZE};
 use super::super::types::Message;
 
 impl DefaultAiEngine {
@@ -122,15 +122,15 @@ impl DefaultAiEngine {
 
         let mut full_content = String::new();
         let mut stream = res.bytes_stream();
+        let mut lines = LineBuffer::default();
 
         'chunks: while let Some(chunk) = stream.next().await {
             let bytes = chunk.map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&bytes);
-            for line in text.lines() {
+            for line in lines.push(&bytes) {
                 if line.is_empty() {
                     continue;
                 }
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
                     if let Some(content) = json["message"]["content"].as_str() {
                         full_content.push_str(content);
                         on_token(content);

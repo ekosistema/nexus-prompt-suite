@@ -154,11 +154,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
         setIsLoadingModels(true);
         try {
-            const models = await aiService.listProviderModels(
-                settings.aiProvider,
-                settings.endpoint,
-                undefined
-            );
+            const models = await aiService.listProviderModels(settings.aiProvider, settings.endpoint);
             setAvailableModels(models.length > 0 ? models : provider.default_models);
             
             // Auto-select first model if current model is not in the list

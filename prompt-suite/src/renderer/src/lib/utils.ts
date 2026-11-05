@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import DOMPurify from "dompurify"
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -10,6 +9,8 @@ function redactSensitive(str: string): string {
     return str
         .replace(/(sk-[a-zA-Z0-9_-]{20,})/g, '[API_KEY_REDACTED]')
         .replace(/(AIza[0-9A-Za-z_-]{35})/g, '[API_KEY_REDACTED]')
+        .replace(/\b(gsk_|tgp_v1_|sk-ant-|sk-or-)[A-Za-z0-9_-]{16,}/g, '[API_KEY_REDACTED]')
+        .replace(/(x-goog-api-key:\s*)[^\s,;]+/gi, '$1[KEY_REDACTED]')
         .replace(/(Bearer\s+)[^\s,;]+/gi, '$1[TOKEN_REDACTED]')
         .replace(/(x-api-key:\s*)[^\s,;]+/gi, '$1[KEY_REDACTED]')
         .replace(/("key"\s*:\s*")[^"]+/gi, '$1[API_KEY_REDACTED]')
@@ -42,25 +43,11 @@ export function safeLog(level: 'log' | 'error' | 'warn', ...args: unknown[]): vo
     console[level](...sanitized)
 }
 
-export function sanitizeAIOutput(text: string): string {
-    return DOMPurify.sanitize(text, {
-        ALLOWED_TAGS: [
-            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'p', 'br', 'hr',
-            'ul', 'ol', 'li',
-            'strong', 'em', 'b', 'i', 'u', 's', 'del',
-            'a', 'img',
-            'code', 'pre',
-            'blockquote',
-            'table', 'thead', 'tbody', 'tr', 'th', 'td',
-            'span', 'div',
-        ],
-        ALLOWED_ATTR: [
-            'href', 'target', 'rel', 'title',
-            'src', 'alt', 'width', 'height',
-            'class', 'id',
-        ],
-        ALLOW_DATA_ATTR: false,
-        ALLOWED_URI_REGEXP: /^(?:(?:https?|ftp|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
-    })
+// La salida de la IA se muestra siempre como TEXTO (React escapa el contenido), no como HTML.
+// Pasarla por un sanitizador HTML corrompía los prompts: convertía "<" y "&" en entidades y
+// eliminaba etiquetas legítimas como <instrucciones>. Solo se quitan las vallas de código externas.
+export function stripMarkdownFences(text: string): string {
+    return text
+        .replace(/^```(?:markdown|md)?[ \t]*\r?\n/, '')
+        .replace(/\r?\n```[ \t]*$/, '')
 }

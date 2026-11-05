@@ -1,40 +1,40 @@
-## 📋 Description
+## 📋 What does this PR do?
 
-<!-- Briefly describe what this PR does and why it's needed. Reference any related issues. -->
+<!-- A short summary of the change and why it's needed. -->
 
 Closes #
 
-## 🎯 Change Type
+## 🎯 Type of change
 
 - [ ] `feat:` New feature
 - [ ] `fix:` Bug fix
 - [ ] `docs:` Documentation
-- [ ] `refactor:` Code restructuring (no behavior change)
-- [ ] `test:` Adding or updating tests
-- [ ] `chore:` Build, CI, or tooling
+- [ ] `refactor:` Restructuring (no behavior change)
+- [ ] `test:` Tests
+- [ ] `chore:` Build, tooling or dependencies
 
-## 🧪 Testing
+## 🧪 How was it tested?
 
-- [ ] Unit tests added or updated
-- [ ] `cargo test` passes (backend)
-- [ ] `npm test` passes (frontend)
-- [ ] `npx tsc --noEmit` passes (typecheck)
-- [ ] `cargo clippy -- -D warnings` passes (lint)
-- [ ] `cargo fmt --check` passes (format)
+> Our workflow doesn't run tests on pull requests yet, so please run these locally.
+
+- [ ] `npm test` and `npx tsc --noEmit` (from `prompt-suite/`)
+- [ ] `cargo test`, `cargo clippy` and `cargo fmt --check` (from `prompt-suite/src-tauri/`)
+- [ ] Tried it in the app with `npm run tauri dev`
+- [ ] Tests added or updated for the behavior I changed
 
 ## ✅ Checklist
 
-- [ ] Code follows [Inline Documentation Standards](./docs/INLINE_STANDARDS.md)
-- [ ] No `unsafe` blocks in Rust without explicit justification
-- [ ] All TypeScript code is fully typed (`strict: true`)
-- [ ] Production build compiles without errors (`npm run tauri build`)
-- [ ] Documentation updated if the change affects public API or user-facing behavior
-- [ ] Breaking changes are explicitly noted and communicated
+- [ ] Follows the [inline documentation standards](../docs/INLINE_STANDARDS.md)
+- [ ] User-facing text has both Spanish and English entries
+- [ ] No API keys, tokens or personal data in code, logs or screenshots
+- [ ] No `unsafe` Rust without a written justification
+- [ ] Documentation updated if behavior changed
+- [ ] Breaking changes are called out below
 
 ## 📸 Screenshots
 
-<!-- If the change affects the UI, include before/after screenshots or a screen recording. -->
+<!-- For visual changes, add before/after images. -->
 
-## 🔍 Review Focus
+## 🔍 Where should reviewers look?
 
-<!-- Point reviewers to specific areas that need attention — complex logic, architectural decisions, or trade-offs made. -->
+<!-- Tricky logic, trade-offs, or decisions you'd like a second opinion on. -->

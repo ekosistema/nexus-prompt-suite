@@ -1,37 +1,42 @@
 ---
-name: 💡 Feature Request
-about: Propose a new feature or enhancement for Nexus Prompt Suite
+name: 💡 Feature request
+about: Suggest an idea or improvement
 title: '[Feature]: '
 labels: ['enhancement', 'triage']
 assignees: []
 ---
 
-## 💡 Feature Description
+## 🤔 What problem are you trying to solve?
 
-A clear and concise description of the feature you'd like to see.
+Describe the situation or frustration. What's hard or slow today?
 
-## 🤔 Problem It Solves
+## 💡 What would you like to see?
 
-Describe the problem or limitation you're experiencing that this feature would address. What workflows are blocked or inefficient today?
+A short description of the feature.
 
-## 🎯 Use Case
+## 🎯 Who would use it, and how?
 
-Describe the specific scenario or workflow where this feature would be valuable. Who would use it and how?
+Walk us through a real workflow where this would help.
 
-## 📐 Proposed Solution
+## 🔄 Alternatives you've tried
 
-If you have ideas on how to implement this, describe them here. Mockups, wireframes, code snippets, or workflow diagrams are welcome.
+Workarounds or other approaches, and where they fall short.
 
-## 🔄 Alternatives Considered
+## 🧩 Where does it fit?
 
-Have you considered or tried alternative approaches or workarounds? What are their limitations?
+- [ ] Genesis Lab
+- [ ] Software Architect
+- [ ] Code Auditor
+- [ ] Content Studio
+- [ ] Social Strategist
+- [ ] Template Library
+- [ ] History, refine or versions
+- [ ] Settings or AI providers
+- [ ] Something else
 
-## 📋 Additional Context
+## 📎 Extra context
 
-- Does this relate to a specific suite (Genesis, Dev, Audit, Studio, Social)?
-- Does it require changes to a specific AI provider integration?
-- Any reference implementations, research, or prior art to share?
+Mockups, examples from other tools, links, anything that helps.
 
----
-
-**Thank you for helping shape the future of Nexus Prompt Suite.**
+> 💬 A note from the maintainers: Nexus prefers short forms. If your idea adds many
+> optional fields, think about whether most people would actually fill them in.

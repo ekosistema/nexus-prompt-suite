@@ -1,66 +1,99 @@
-# Inline Documentation Standards
+# 📐 Inline Documentation Standards
 
-**Objective**: Ensure code maintainability and high-density technical context across the Prompt Suite ecosystem.
+Good comments save the next person, often future you, from guessing. This page
+explains how we document code in Nexus.
+
+**The rule of thumb:** explain *why* and *what to watch out for*. Don't repeat what
+the code already says.
 
 ---
 
-## 🦀 Rust Backend (RustDoc)
+## 🦀 Rust (RustDoc)
 
-Use triple forward slashes `///` for public functions, structs, and enums.
+Use `///` on public functions, structs and enums, and on any command exposed to the UI.
 
-### RustDoc Structure
+### Structure
 
-1. **Summary**: A one-sentence description of the function's purpose.
-2. **# Arguments**: Bullet list of inputs and their constraints.
-3. **# Returns**: The successful data type or value.
-4. **# Errors**: Common error scenarios and their causes.
+1. **Summary:** one sentence on what it does.
+2. **`# Arguments`:** inputs and their constraints (when not obvious).
+3. **`# Returns`:** what a successful call gives back.
+4. **`# Errors`:** what can go wrong, and why.
 
-### RustDoc Example
+### Example
 
 ```rust
-/// Securely retrieves the user's API key from the OS Keychain.
+/// Reports whether a provider has an API key stored in the OS keychain.
+///
+/// The key itself never leaves the Rust process; the interface only learns
+/// whether one exists.
+///
+/// # Arguments
+/// * `provider` - A provider id such as `"openai"`. Unknown ids return `false`.
 ///
 /// # Returns
-/// * `Ok(String)` - The decrypted API key if found.
-/// * `Ok(String::new())` - An empty string if no key is stored.
+/// * `Ok(true)` - A non-empty key is stored.
+/// * `Ok(false)` - No key is stored, or the provider doesn't need one.
 ///
 /// # Errors
-/// * `Err(String)` - If the Keyring service is unavailable.
+/// * `Err(String)` - The keychain entry could not be created.
 #[tauri::command]
-fn get_api_key_secure() -> Result<String, String> {
+fn has_provider_api_key(provider: String) -> Result<bool, String> {
     // ...
 }
 ```
 
+### Also
+
+- Mark security-relevant limits with the reason (for example `// Redirects are disabled:
+  reqwest only strips Authorization, not x-api-key`).
+- Never write `unsafe` without a comment explaining why it is sound.
+- Never put real keys or tokens in examples. Use obvious placeholders.
+
 ---
 
-## ⚛️ Frontend / TypeScript (JSDoc)
+## ⚛️ TypeScript (JSDoc)
 
-Use standard JSDoc `/** */` blocks for services, utilities, and hooks.
+Use `/** … */` on services, hooks and utilities that others will call.
 
-### JSDoc Structure
+### Structure
 
-1. **Summary**: Clear description of the method.
-2. **@param**: Argument name and description.
-3. **@returns**: Return type and description.
-4. **@throws**: Error types if explicitly handled.
+1. **Summary:** what it does and when to use it.
+2. **`@param`:** each argument and its meaning.
+3. **`@returns`:** what comes back.
+4. **`@throws`:** only errors the caller is expected to handle.
 
-### JSDoc Example
+### Example
 
 ```typescript
 /**
- * Invokes the AI inference command via the Tauri IPC bridge.
- * 
- * @param {string} provider - The AI provider (ollama, openai, openrouter).
- * @param {Message[]} messages - Formal prompt structure.
- * @returns {Promise<string>} The generated AI text.
- * @throws {Error} If the backend returns a non-zero status.
+ * Asks the backend for the models a provider currently offers.
+ *
+ * The API key is resolved inside Rust from the OS keychain; it is never
+ * passed from the interface.
+ *
+ * @param provider - A provider id such as `"anthropic"`.
+ * @param endpoint - Optional custom endpoint; empty uses the provider default.
+ * @returns The model ids, or the provider's built-in defaults if none are found.
+ * @throws {Error} If the provider can't be reached or rejects the request.
  */
-export async function callAI(provider: string, messages: Message[]): Promise<string> {
+export async function listProviderModels(provider: string, endpoint: string): Promise<string[]> {
     // ...
 }
 ```
 
+### Also
+
+- With TypeScript `strict` on, skip types in JSDoc: they're already in the signature.
+- Comment non-obvious decisions, such as why state lives outside a component.
+
 ---
 
-🚀 **Prompt Suite Architecture Standards** | [Support](mailto:tech@celerolab.com)
+## 🌐 Language
+
+- **Code comments and documentation:** English.
+- **User-facing text:** goes in `src/renderer/src/lib/i18n.ts` with both **Spanish and
+  English** entries. Never hard-code visible text in a component.
+
+---
+
+Questions? See [CONTRIBUTING.md](../CONTRIBUTING.md).

@@ -1,8 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSessionState } from '../../hooks/useSessionState';
 import { promptTemplates, PromptTemplate } from './data';
+import { getVarMeta } from './varMeta';
 import { t } from '../../lib/i18n';
 import { secureGetItem, secureSetItem } from '../../lib/secureStorage';
-import { Search, BookOpen, Zap, Shield, FileText, Settings, Code, Plus, Trash2, Save, Edit3, X, Info, Share2, Palette, Layers, AlertTriangle } from 'lucide-react';
+import { Search, BookOpen, Zap, Shield, FileText, Settings, Code, Plus, Trash2, Save, Edit3, X, Info, Share2, Palette, Layers, AlertTriangle, Wand2, Briefcase } from 'lucide-react';
 
 interface CustomTemplate {
     id: string;
@@ -30,6 +32,7 @@ interface SuiteTemplatesProps {
     onGenerate: (prompt: string) => void;
     lang: 'es' | 'en';
     onRegisterGenerate?: (fn: () => void) => void;
+    onInvalid?: (msg: string) => void;
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -40,6 +43,8 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
     social: <Share2 size={14} />,
     creative: <Palette size={14} />,
     content: <Layers size={14} />,
+    coding: <Code size={14} />,
+    productivity: <Briefcase size={14} />,
     custom: <Edit3 size={14} />,
 };
 
@@ -51,6 +56,8 @@ const CATEGORY_COLORS: Record<string, string> = {
     social: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
     creative: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
     content: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    coding: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+    productivity: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
     custom: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
 };
 
@@ -97,10 +104,6 @@ const VAR_HELP: Record<string, VarHelp> = {
     AUDIENCE: {
         label: { es: 'Audiencia Objetivo', en: 'Target Audience' },
         why: { es: 'Define el nivel técnico y el contexto de quien leerá el contenido: developers junior, CTOs, DevOps engineers. Determina el tono, vocabulario y profundidad.', en: 'Defines the technical level and context of who will read the content: junior developers, CTOs, DevOps engineers. Determines tone, vocabulary, and depth.' },
-    },
-    LEVEL: {
-        label: { es: 'Nivel de Profundidad', en: 'Depth Level' },
-        why: { es: 'Principiante, intermedio o avanzado. Controla cuánto contexto se asume y la complejidad de los ejemplos y explicaciones.', en: 'Beginner, intermediate, or advanced. Controls how much context is assumed and the complexity of examples and explanations.' },
     },
     PRODUCT_NAME: {
         label: { es: 'Nombre del Producto', en: 'Product Name' },
@@ -150,14 +153,6 @@ const VAR_HELP: Record<string, VarHelp> = {
         label: { es: 'Descripción del Proyecto', en: 'Project Description' },
         why: { es: 'Explica en una frase qué hace el proyecto y por qué existe. Es lo primero que lee un visitante del repositorio.', en: 'Explains in one sentence what the project does and why it exists. The first thing a repository visitor reads.' },
     },
-    DOMAIN: {
-        label: { es: 'Dominio', en: 'Domain' },
-        why: { es: 'El nombre de dominio donde se sirve la aplicación. Necesario para configurar SSL, virtual hosts y redirecciones.', en: 'The domain name where the application is served. Needed to configure SSL, virtual hosts, and redirects.' },
-    },
-    BACKEND_URL: {
-        label: { es: 'URL del Backend', en: 'Backend URL' },
-        why: { es: 'La dirección interna del servidor de aplicación al que Nginx hará proxy. Define el upstream en la configuración de reverse proxy.', en: 'The internal address of the application server Nginx will proxy to. Defines the upstream in the reverse proxy configuration.' },
-    },
     SCOPE: {
         label: { es: 'Alcance del Pentest', en: 'Pentest Scope' },
         why: { es: 'Define los límites de la prueba: qué sistemas, URLs y rangos IP están dentro del test. Evita pruebas no autorizadas y enfoca el esfuerzo.', en: 'Defines test boundaries: which systems, URLs, and IP ranges are in scope. Prevents unauthorized testing and focuses effort.' },
@@ -166,25 +161,9 @@ const VAR_HELP: Record<string, VarHelp> = {
         label: { es: 'Nombre del Equipo', en: 'Team Name' },
         why: { es: 'Identifica al equipo en la retrospectiva. Personaliza el documento y las action items para el contexto del equipo.', en: 'Identifies the team in the retrospective. Personalizes the document and action items for the team context.' },
     },
-    SPRINT_NUMBER: {
-        label: { es: 'Número de Sprint', en: 'Sprint Number' },
-        why: { es: 'El identificador del sprint que se está retrospectivando. Permite tracking histórico y comparación entre sprints.', en: 'The sprint identifier being retrospectived. Enables historical tracking and comparison between sprints.' },
-    },
     DURATION: {
         label: { es: 'Duración del Sprint', en: 'Sprint Duration' },
         why: { es: 'Cuánto duró el sprint (1, 2, 4 semanas). Influye en la cantidad de trabajo analizado y el timeboxing de la retrospectiva.', en: 'How long the sprint lasted (1, 2, 4 weeks). Influences the amount of work analyzed and the retrospective timeboxing.' },
-    },
-    PROJECT: {
-        label: { es: 'Nombre del Proyecto', en: 'Project Name' },
-        why: { es: 'El proyecto sobre el que se reporta a stakeholders. Contextualiza el reporte dentro del portfolio de iniciativas.', en: 'The project being reported to stakeholders. Contextualizes the report within the initiative portfolio.' },
-    },
-    PERIOD: {
-        label: { es: 'Período del Reporte', en: 'Reporting Period' },
-        why: { es: 'El intervalo de tiempo que cubre el update: semanal, quincenal, mensual. Establece el marco temporal de los logros y métricas.', en: 'The time interval covered by the update: weekly, biweekly, monthly. Establishes the time frame for achievements and metrics.' },
-    },
-    ORG: {
-        label: { es: 'Organización', en: 'Organization' },
-        why: { es: 'El nombre de la empresa o equipo que implementa el plan. Adapta el tono, los roles y los procedimientos al contexto organizacional.', en: 'The name of the company or team implementing the plan. Adapts tone, roles, and procedures to the organizational context.' },
     },
     INFRASTRUCTURE: {
         label: { es: 'Tipo de Infraestructura', en: 'Infrastructure Type' },
@@ -198,10 +177,6 @@ const VAR_HELP: Record<string, VarHelp> = {
         label: { es: 'Servicios Involucrados', en: 'Involved Services' },
         why: { es: 'Lista los servicios que forman parte del stack: PostgreSQL, Redis, RabbitMQ, etc. Define qué componentes necesitan configuración y monitoreo.', en: 'Lists the services that are part of the stack: PostgreSQL, Redis, RabbitMQ, etc. Defines which components need configuration and monitoring.' },
     },
-    DB: {
-        label: { es: 'Base de Datos', en: 'Database' },
-        why: { es: 'El motor de base de datos: PostgreSQL, MySQL, MongoDB. Determina volúmenes, puertos, health checks y configuración de persistencia.', en: 'The database engine: PostgreSQL, MySQL, MongoDB. Determines volumes, ports, health checks, and persistence configuration.' },
-    },
     METRICS: {
         label: { es: 'Métricas Clave', en: 'Key Metrics' },
         why: { es: 'Qué indicadores son críticos para tu aplicación: latencia, error rate, throughput, saturación. Definen qué se monitorea y qué dispara alertas.', en: 'Which indicators are critical for your application: latency, error rate, throughput, saturation. Define what is monitored and what triggers alerts.' },
@@ -210,66 +185,24 @@ const VAR_HELP: Record<string, VarHelp> = {
         label: { es: 'Condiciones de Alerta', en: 'Alert Conditions' },
         why: { es: 'Los umbrales y situaciones que deben generar notificaciones. Determinan la configuración de Alertmanager y los canales de notificación.', en: 'The thresholds and situations that should generate notifications. Determine Alertmanager configuration and notification channels.' },
     },
-    RTO: {
-        label: { es: 'Recovery Time Objective', en: 'Recovery Time Objective' },
-        why: { es: 'Tiempo máximo aceptable para recuperar el servicio tras un desastre. Define la urgencia y el tipo de estrategia de recuperación necesaria.', en: 'Maximum acceptable time to recover service after a disaster. Defines the urgency and type of recovery strategy needed.' },
-    },
-    RPO: {
-        label: { es: 'Recovery Point Objective', en: 'Recovery Point Objective' },
-        why: { es: 'Cantidad máxima de datos que se puede perder medida en tiempo. Determina la frecuencia de backups y la estrategia de replicación.', en: 'Maximum amount of data that can be lost measured in time. Determines backup frequency and replication strategy.' },
-    },
-    BUDGET: {
-        label: { es: 'Presupuesto Mensual', en: 'Monthly Budget' },
-        why: { es: 'El gasto objetivo mensual en cloud. Sirve como referencia para identificar sobrecostes y priorizar recomendaciones de ahorro.', en: 'The target monthly cloud spend. Serves as a reference to identify overspend and prioritize savings recommendations.' },
-    },
-    CLUSTER: {
-        label: { es: 'Nombre del Cluster', en: 'Cluster Name' },
-        why: { es: 'Identifica el cluster Kubernetes donde se despliega ArgoCD. Necesario para configurar el contexto y los destinos de despliegue.', en: 'Identifies the Kubernetes cluster where ArgoCD is deployed. Needed to configure context and deployment destinations.' },
-    },
-    REPO: {
-        label: { es: 'Repositorio Git', en: 'Git Repository' },
-        why: { es: 'La URL del repositorio que contiene los manifests de Kubernetes. Es la fuente de verdad para GitOps.', en: 'The URL of the repository containing Kubernetes manifests. The source of truth for GitOps.' },
-    },
-    ENV: {
-        label: { es: 'Entornos', en: 'Environments' },
-        why: { es: 'Los entornos a gestionar: dev, staging, production. Define la estrategia de promoción y los ApplicationSets necesarios.', en: 'The environments to manage: dev, staging, production. Defines the promotion strategy and required ApplicationSets.' },
-    },
     DEPLOY: {
         label: { es: 'Target de Deploy', en: 'Deploy Target' },
         why: { es: 'Dónde se despliega la aplicación: Kubernetes, EC2, Vercel, S3. Determina los comandos y configuraciones de la etapa de deploy.', en: 'Where the application is deployed: Kubernetes, EC2, Vercel, S3. Determines deploy stage commands and configurations.' },
     },
-    PORT: {
-        label: { es: 'Puerto de la Aplicación', en: 'Application Port' },
-        why: { es: 'El puerto en el que escucha la aplicación dentro del contenedor. Necesario para configurar Services, health checks y network policies.', en: 'The port the application listens on inside the container. Needed to configure Services, health checks, and network policies.' },
-    },
-    OS: {
-        label: { es: 'Sistema Operativo', en: 'Operating System' },
-        why: { es: 'El SO objetivo del playbook: Ubuntu, Rocky Linux, Debian. Determina el package manager, paths y servicios disponibles.', en: 'The target OS for the playbook: Ubuntu, Rocky Linux, Debian. Determines the package manager, paths, and available services.' },
-    },
-    CONFIG: {
-        label: { es: 'Configuración Específica', en: 'Specific Configuration' },
-        why: { es: 'Detalles concretos de lo que se necesita configurar: usuarios, firewalls, paquetes específicos. Permite que el playbook sea preciso y útil.', en: 'Concrete details of what needs to be configured: users, firewalls, specific packages. Allows the playbook to be precise and useful.' },
-    },
-    DB_SOURCE: {
-        label: { es: 'Base de Datos Origen', en: 'Source Database' },
-        why: { es: 'La base de datos desde la que se migra: versión, engine, tamaño. Define los pasos de extracción y las herramientas de exportación.', en: 'The database being migrated from: version, engine, size. Defines extraction steps and export tools.' },
-    },
-    DB_TARGET: {
-        label: { es: 'Base de Datos Destino', en: 'Target Database' },
-        why: { es: 'La base de datos a la que se migra. Puede ser una versión más reciente u otro engine completamente. Determina transformaciones y validaciones.', en: 'The database being migrated to. May be a newer version or a completely different engine. Determines transformations and validations.' },
-    },
-    SIZE: {
-        label: { es: 'Tamaño Estimado', en: 'Estimated Size' },
-        why: { es: 'El volumen de datos a migrar (GB/TB). Influye en la estrategia: dump directo, replicación, CDC. Determina tiempos y riesgos.', en: 'The data volume to migrate (GB/TB). Influences strategy: direct dump, replication, CDC. Determines timing and risks.' },
-    },
 };
 
-export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTemplatesProps) {
+export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate, onInvalid }: SuiteTemplatesProps) {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [selectedTemplate, setSelectedTemplate] = useState<UnifiedTemplate | null>(null);
-    const [customVars, setCustomVars] = useState<Record<string, string>>({});
+    const [selectedId, setSelectedId] = useSessionState<string | null>('templates.selectedId', null);
+    const [varsByTemplate, setVarsByTemplate] = useSessionState<Record<string, Record<string, string>>>('templates.vars', {});
     const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+    const customLoaded = useRef(false);
+    // Últimos valores usados por nombre de variable (p. ej. TECH_STACK) para no reescribirlos en cada plantilla.
+    const [valueMemory, setValueMemory] = useState<Record<string, string>>({});
+    useEffect(() => {
+        secureGetItem<Record<string, string>>('var_memory').then(m => { if (m) setValueMemory(m); }).catch(() => undefined);
+    }, []);
     const [isCreating, setIsCreating] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | null>(null);
 
@@ -284,12 +217,14 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
     useEffect(() => {
         secureGetItem<CustomTemplate[]>('custom_templates').then(data => {
             if (data) setCustomTemplates(data);
-        });
+        }).finally(() => { customLoaded.current = true; });
     }, []);
 
+    // Persistimos también la lista vacía (borrar la última plantilla propia), pero
+    // solo después de haber cargado la guardada para no pisarla con [].
     useEffect(() => {
-        if (customTemplates.length > 0) {
-            secureSetItem('custom_templates', customTemplates);
+        if (customLoaded.current) {
+            secureSetItem('custom_templates', customTemplates).catch(() => undefined);
         }
     }, [customTemplates]);
 
@@ -307,6 +242,16 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
         }));
         return [...builtin, ...custom];
     }, [customTemplates]);
+
+    const selectedTemplate = useMemo(
+        () => allTemplates.find(tpl => tpl.id === selectedId) ?? null,
+        [allTemplates, selectedId]
+    );
+    const customVars: Record<string, string> = (selectedId && varsByTemplate[selectedId]) || {};
+    const setCustomVars = (vars: Record<string, string>) => {
+        if (!selectedId) return;
+        setVarsByTemplate(prev => ({ ...prev, [selectedId]: vars }));
+    };
 
     const categories = useMemo(() => {
         const cats = new Set(allTemplates.map(t => t.category));
@@ -339,7 +284,7 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
 
         for (const varName of usedVars) {
             const value = customVars[varName] || `{{${varName}}}`;
-            prompt = prompt.replace(new RegExp(`\\{\\{${varName}\\}\\}`, 'g'), value);
+            prompt = prompt.replace(new RegExp(`\\{\\{${varName}\\}\\}`, 'g'), () => value);
         }
 
         prompt = prompt.replace(/\{\{LANG_OUTPUT\}\}/g, lang === 'es' ? 'ESPAÑOL' : 'ENGLISH');
@@ -347,17 +292,43 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
         return prompt;
     };
 
+    // Solo se recuerdan campos cortos; el contenido largo (código, documentos, notas) nunca se guarda.
+    const isRememberable = (name: string) => getVarMeta(name).type !== 'textarea';
+
     const handleUseTemplate = (template: UnifiedTemplate) => {
-        setSelectedTemplate(template);
-        setCustomVars({});
+        setSelectedId(template.id);
+        if (varsByTemplate[template.id]) return; // ya se estaba editando: no pisar
+        const prefill: Record<string, string> = {};
+        for (const name of extractVariables(template.prompt[lang])) {
+            const saved = valueMemory[name];
+            if (!saved || !isRememberable(name)) continue;
+            const meta = getVarMeta(name);
+            if (meta.type === 'select' && !meta.options?.[lang].includes(saved)) continue;
+            prefill[name] = saved;
+        }
+        if (Object.keys(prefill).length) {
+            setVarsByTemplate(prev => ({ ...prev, [template.id]: prefill }));
+        }
+    };
+
+    const forgetRememberedValues = () => {
+        setValueMemory({});
+        secureSetItem('var_memory', {}).catch(() => undefined);
     };
 
     const handleExecute = () => {
-        if (!selectedTemplate) return;
+        if (!selectedTemplate) {
+            onInvalid?.(t('templates.pick_first', lang));
+            return;
+        }
         const filledPrompt = fillTemplate(selectedTemplate);
+        const remembered = { ...valueMemory };
+        for (const [name, value] of Object.entries(customVars)) {
+            if (value.trim() && isRememberable(name)) remembered[name] = value;
+        }
+        setValueMemory(remembered);
+        secureSetItem('var_memory', remembered).catch(() => undefined);
         onGenerate(filledPrompt);
-        setSelectedTemplate(null);
-        setCustomVars({});
     };
 
     useEffect(() => {
@@ -427,35 +398,87 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
     // Template detail view
     if (selectedTemplate) {
         const usedVars = extractVariables(selectedTemplate.prompt[lang]);
-        const requiredVars = usedVars.filter(v => VAR_HELP[v]);
-        const optionalVars = usedVars.filter(v => !VAR_HELP[v]);
+        // Todas las variables de una plantilla son necesarias; VAR_HELP solo aporta explicación.
+        const requiredVars = usedVars;
+        const optionalVars: string[] = [];
+        const humanize = (v: string) => v.toLowerCase().split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+        const fieldClass = "w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40";
+
+        const renderVarInput = (varName: string) => {
+            const meta = getVarMeta(varName);
+            const value = customVars[varName] || '';
+            const update = (v: string) => setCustomVars({ ...customVars, [varName]: v });
+            const placeholder = meta.example?.[lang] ?? (lang === 'es' ? 'Escribe tu valor aquí...' : 'Enter your value here...');
+            const label = VAR_HELP[varName]?.label[lang] ?? meta.label?.[lang] ?? varName;
+
+            if (meta.type === 'select' && meta.options) {
+                return (
+                    <select className={fieldClass} value={value} aria-label={label} onChange={(e) => update(e.target.value)}>
+                        <option value="">{t('templates.choose', lang)}</option>
+                        {meta.options[lang].map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                );
+            }
+            if (meta.type === 'textarea') {
+                return (
+                    <textarea
+                        className={`${fieldClass} font-mono min-h-[90px] resize-y`}
+                        aria-label={label}
+                        placeholder={placeholder}
+                        value={value}
+                        onChange={(e) => update(e.target.value)}
+                    />
+                );
+            }
+            const listId = meta.suggestions ? `sugg-${varName}` : undefined;
+            return (
+                <>
+                    <input
+                        type="text"
+                        list={listId}
+                        className={`${fieldClass} font-mono`}
+                        aria-label={label}
+                        placeholder={placeholder}
+                        value={value}
+                        onChange={(e) => update(e.target.value)}
+                    />
+                    {meta.suggestions && (
+                        <datalist id={listId}>
+                            {meta.suggestions.map(o => <option key={o} value={o} />)}
+                        </datalist>
+                    )}
+                </>
+            );
+        };
+
+        const fillExamples = () => {
+            const next = { ...customVars };
+            for (const v of usedVars) {
+                const ex = getVarMeta(v).example?.[lang];
+                if (!next[v]?.trim() && ex) next[v] = ex;
+            }
+            setCustomVars(next);
+        };
+        const hasExamples = usedVars.some(v => getVarMeta(v).example);
 
         const renderVarCell = (varName: string) => {
             const help = VAR_HELP[varName];
+            const metaLabel = getVarMeta(varName).label?.[lang];
             return (
                 <div key={varName} className="bg-card/50 border border-border rounded-xl p-4 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-mono font-bold text-emerald-400">
                             {`{{${varName}}}`}
                         </span>
-                        {help && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                                {t('variable.required', lang)}
-                            </span>
-                        )}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                            {t('variable.required', lang)}
+                        </span>
                     </div>
-                    {help && (
-                        <p className="text-xs text-muted-foreground">
-                            {help.label[lang]}
-                        </p>
-                    )}
-                    <input
-                        type="text"
-                        className="w-full bg-secondary/40 border border-input rounded-md px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                        placeholder={lang === 'es' ? 'Escribe tu valor aquí...' : 'Enter your value here...'}
-                        value={customVars[varName] || ''}
-                        onChange={(e) => setCustomVars({ ...customVars, [varName]: e.target.value })}
-                    />
+                    <p className="text-xs text-muted-foreground">
+                        {help ? help.label[lang] : (metaLabel ?? humanize(varName))}
+                    </p>
+                    {renderVarInput(varName)}
                     {help && (
                         <p className="text-xs text-muted-foreground leading-relaxed">
                             {help.why[lang]}
@@ -474,7 +497,7 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
         }
         previewVars.forEach(v => {
             if (customVars[v]) {
-                filledPrompt = filledPrompt.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), customVars[v]);
+                filledPrompt = filledPrompt.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), () => customVars[v]);
             }
         });
         filledPrompt = filledPrompt.replace(/\{\{LANG_OUTPUT\}\}/g, lang === 'es' ? 'ESPAÑOL' : 'ENGLISH');
@@ -485,10 +508,10 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
             <div className="space-y-5 animate-in fade-in duration-300">
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => { setSelectedTemplate(null); setCustomVars({}); }}
+                        onClick={() => setSelectedId(null)}
                         className="text-xs px-3 py-1.5 rounded-md bg-secondary/50 hover:bg-secondary border border-border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     >
-                        ← {t('templates.back', lang)}
+                        {t('templates.back', lang)}
                     </button>
                     <span className="text-xl">{selectedTemplate.icon}</span>
                     <h2 className="text-lg font-bold">{selectedTemplate.title[lang]}</h2>
@@ -498,6 +521,25 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
 
                 {usedVars.length > 0 && (
                     <div className="space-y-4">
+                        {Object.keys(valueMemory).length > 0 && (
+                            <button
+                                type="button"
+                                onClick={forgetRememberedValues}
+                                className="ml-2 text-xs text-muted-foreground hover:text-destructive underline-offset-2 hover:underline"
+                            >
+                                {t('templates.forget_values', lang)}
+                            </button>
+                        )}
+                        {hasExamples && (
+                            <button
+                                type="button"
+                                onClick={fillExamples}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                            >
+                                <Wand2 size={13} />
+                                {t('templates.fill_examples', lang)}
+                            </button>
+                        )}
                         <div className="space-y-0.5">
                             <h3 className="text-sm font-bold flex items-center gap-2">
                                 <Info size={14} className="text-emerald-400" />
@@ -648,7 +690,8 @@ export function SuiteTemplates({ onGenerate, lang, onRegisterGenerate }: SuiteTe
                                     <option value="business">{t('templates.cat.business', lang)}</option>
                                     <option value="social">{t('templates.cat.social', lang)}</option>
                                     <option value="creative">{t('templates.cat.creative', lang)}</option>
-                                    <option value="content">{t('templates.cat.content', lang)}</option>
+                                    <option value="coding">{t('templates.cat.coding', lang)}</option>
+                                    <option value="productivity">{t('templates.cat.productivity', lang)}</option>
                                 </select>
                             </div>
                         </div>

@@ -48,6 +48,49 @@ pub trait AiEngine: Send + Sync {
     ) -> Result<(), String>;
 }
 
+/// Reassembles complete lines from arbitrary network chunks.
+///
+/// SSE/NDJSON events can be split across TCP chunks (and multi-byte UTF-8 characters
+/// can be cut in half), so parsing each chunk independently drops tokens. Bytes are
+/// buffered until a full line (`\n`) is available.
+#[derive(Default)]
+pub(crate) struct LineBuffer {
+    buf: Vec<u8>,
+}
+
+impl LineBuffer {
+    const MAX_PENDING: usize = 1_048_576;
+
+    pub(crate) fn push(&mut self, chunk: &[u8]) -> Vec<String> {
+        self.buf.extend_from_slice(chunk);
+        let mut lines = Vec::new();
+        while let Some(pos) = self.buf.iter().position(|b| *b == b'\n') {
+            let raw: Vec<u8> = self.buf.drain(..=pos).collect();
+            lines.push(String::from_utf8_lossy(&raw[..raw.len() - 1]).trim().to_string());
+        }
+        if self.buf.len() > Self::MAX_PENDING {
+            self.buf.clear(); // hostile endpoint sending an endless line
+        }
+        lines
+    }
+
+    pub(crate) fn finish(&mut self) -> Option<String> {
+        let rest = String::from_utf8_lossy(&self.buf).trim().to_string();
+        self.buf.clear();
+        if rest.is_empty() {
+            None
+        } else {
+            Some(rest)
+        }
+    }
+}
+
+/// True when a 400 response complains about the `temperature` parameter
+/// (e.g. OpenAI reasoning models only accept the default value).
+pub(crate) fn rejects_temperature(status: reqwest::StatusCode, body: &str) -> bool {
+    status == reqwest::StatusCode::BAD_REQUEST && body.to_lowercase().contains("temperature")
+}
+
 pub struct DefaultAiEngine {
     pub client: reqwest::Client,
 }

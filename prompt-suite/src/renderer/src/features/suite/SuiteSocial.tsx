@@ -1,178 +1,97 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useSessionState } from '../../hooks/useSessionState';
 import { DynamicForm } from '../../components/ui/DynamicForm';
 import { socialFields } from './formSchemas';
+import { optionLabel } from './fieldUtils';
 import { t } from '../../lib/i18n';
-import { Zap } from 'lucide-react';
 
 interface SuiteSocialProps {
     onGenerate: (prompt: string) => void;
     lang: 'es' | 'en';
     onRegisterGenerate?: (fn: () => void) => void;
+    onInvalid?: (msg: string) => void;
 }
 
-export function SuiteSocial({ onGenerate, lang, onRegisterGenerate }: SuiteSocialProps) {
-    const [values, setValues] = useState<Record<string, any>>({
+type L2 = { es: string; en: string };
+
+const HOOKS: Record<string, L2> = {
+    curiosity: { es: 'Curiosity Gap: deja un vacío de información que el lector necesita llenar.', en: 'Curiosity Gap: leave an information void the reader needs to fill.' },
+    story: { es: 'Story Hook: una narrativa que crea inversión emocional desde la primera línea.', en: 'Story Hook: a narrative that creates emotional investment from the first line.' },
+    value: { es: 'Value-First: promete una utilidad inmediata y concreta.', en: 'Value-First: promise an immediate, concrete benefit.' },
+    contrarian: { es: 'Contrarian Hook: desafía una suposición popular.', en: 'Contrarian Hook: challenge a popular assumption.' },
+    emotional: { es: 'Emotional Hook: conecta con una emoción fuerte del lector.', en: 'Emotional Hook: connect with a strong emotion of the reader.' },
+    hot_take: { es: 'Hot Take: una opinión fuerte y directa.', en: 'Hot Take: a strong, direct opinion.' },
+};
+
+export function SuiteSocial({ onGenerate, lang, onRegisterGenerate, onInvalid }: SuiteSocialProps) {
+    const [values, setValues] = useSessionState<Record<string, any>>('suite.social', {
         platform: 'linkedin',
         topic: '',
         audience: '',
         hookType: 'curiosity',
         engagementGoal: 'comments',
-        psychTrigger: 'social_proof',
         framework: 'storytelling',
         tone: 'professional',
-        contentLength: 'medium',
-        includeHashtags: true,
-        hashtagCount: '5',
-        abVariants: false,
-        includeVisualBrief: true,
-        seriesMode: false,
-        culturalContext: 'us',
-        visualStyle: 'photo',
-        visualElements: '',
     });
+
+    const L = (es: string, en: string) => (lang === 'es' ? es : en);
 
     const handleChange = (id: string, value: any) => {
         setValues(prev => ({ ...prev, [id]: value }));
     };
 
     const handleGenerate = () => {
-        if (!values.topic?.trim()) return;
-
-        const hookTemplates: Record<string, { es: string; en: string }> = {
-            curiosity: { es: 'Usa un Curiosity Gap: deja un vacío de información que el lector DEBE llenar. Ejemplo: "Probé [X] durante 30 días. Esto es lo que pasó."', en: 'Use a Curiosity Gap: leave an information void the reader MUST fill. Example: "I tried [X] for 30 days. Here\'s what happened."' },
-            story: { es: 'Usa un Story Hook: narrativa que crea inversión emocional. Ejemplo: "Hace 3 años estaba [estado malo]. Hoy [estado bueno]."', en: 'Use a Story Hook: narrative that creates emotional investment. Example: "3 years ago I was [bad state]. Today I [good state]."' },
-            value: { es: 'Usa Value-First: promete utilidad inmediata. Ejemplo: "Cómo [resultado] en [tiempo corto] (paso a paso):"', en: 'Use Value-First: promise immediate utility. Example: "How to [outcome] in [short time] (step by step):"' },
-            contrarian: { es: 'Usa un Contrarian Hook: desafía suposiciones. Ejemplo: "[Opinión popular] está mal. Aquí por qué."', en: 'Use a Contrarian Hook: challenge assumptions. Example: "[Popular opinion] is wrong. Here\'s why."' },
-            emotional: { es: 'Usa un Emotional Hook: conecta con una emoción fuerte. Ejemplo: "Si estás cansado de [dolor], esto es para ti."', en: 'Use an Emotional Hook: connect to a strong feeling. Example: "If you\'re tired of [pain], this is for you."' },
-            hot_take: { es: 'Usa un Hot Take: opinión fuerte y directa. Ejemplo: "Opinión impopular: [postura audaz]"', en: 'Use a Hot Take: strong, direct opinion. Example: "Unpopular opinion: [bold stance]"' },
-        };
-
-        const psychLabels: Record<string, { es: string; en: string }> = {
-            social_proof: { es: 'Social Proof (otros lo hacen, así que debería importarme)', en: 'Social Proof (others do it, so I should care)' },
-            scarcity: { es: 'Scarcity / FOMO (lo limitado es más valioso)', en: 'Scarcity / FOMO (limited is more valuable)' },
-            authority: { es: 'Authority (confío en expertos)', en: 'Authority (I trust experts)' },
-            reciprocity: { es: 'Reciprocity (me diste valor, te debo)', en: 'Reciprocity (you gave value, I owe you)' },
-            identity: { es: 'Identity / In-Group (somos del mismo grupo)', en: 'Identity / In-Group (we\'re the same group)' },
-            loss_aversion: { es: 'Loss Aversion (perder duele más que ganar)', en: 'Loss Aversion (losing hurts more than winning)' },
-        };
-
-        const culturalLabels: Record<string, string> = {
-            us: 'US / Canada',
-            europe: 'Western Europe',
-            latam: 'Latin America',
-            east_asia: 'East Asia',
-            nordics: 'Nordics',
-            middle_east: 'Middle East',
-        };
-
-        const hook = hookTemplates[values.hookType] || hookTemplates.curiosity;
-        const psych = psychLabels[values.psychTrigger] || psychLabels.social_proof;
-
-        let hashtagsSection = '';
-        if (values.includeHashtags) {
-            hashtagsSection = lang === 'es'
-                ? `\n### HASHTAGS\nIncluye ${values.hashtagCount} hashtags relevantes y optimizados para la plataforma.`
-                : `\n### HASHTAGS\nInclude ${values.hashtagCount} relevant, platform-optimized hashtags.`;
+        if (!values.topic?.trim()) {
+            onInvalid?.(t('validation.required', lang).replace('{{field}}', t('social.topic', lang)));
+            return;
         }
 
-        let abSection = '';
-        if (values.abVariants) {
-            abSection = lang === 'es'
-                ? `\n### VARIANTES A/B\nGenera 3 versiones diferentes del post con distintos hooks para testing A/B.`
-                : `\n### A/B VARIANTS\nGenerate 3 different versions of the post with different hooks for A/B testing.`;
-        }
+        const platform = optionLabel(socialFields, 'platform', values.platform, lang);
+        const goal = optionLabel(socialFields, 'engagementGoal', values.engagementGoal, lang);
+        const framework = optionLabel(socialFields, 'framework', values.framework, lang);
+        const tone = optionLabel(socialFields, 'tone', values.tone, lang);
+        const hookName = optionLabel(socialFields, 'hookType', values.hookType, lang);
+        const hook = (HOOKS[values.hookType] || HOOKS.curiosity)[lang];
+        const audience = values.audience?.trim() || L('público general', 'general audience');
 
-        let visualSection = '';
-        if (values.includeVisualBrief) {
-            visualSection = lang === 'es'
-                ? `\n### DIRECCIÓN DE ARTE\nIncluye un brief visual para la imagen/video acompañante:\n- Estilo: ${values.visualStyle}\n- Elementos clave: ${values.visualElements || values.topic}\n- Formato optimizado para ${values.platform}`
-                : `\n### ART DIRECTION\nInclude a visual brief for the accompanying image/video:\n- Style: ${values.visualStyle}\n- Key elements: ${values.visualElements || values.topic}\n- Format optimized for ${values.platform}`;
-        }
+        const prompt = L(
+            `Actúa como un **Estratega de Redes Sociales** que domina el formato nativo de **${platform}**.
 
-        let seriesSection = '';
-        if (values.seriesMode) {
-            seriesSection = lang === 'es'
-                ? `\n### MODO SERIE\nEste es parte de una serie. Marca claramente el número (ej: 1/5, 2/5) y crea un hilo coherente.`
-                : `\n### SERIES MODE\nThis is part of a series. Clearly mark the number (e.g., 1/5, 2/5) and create a coherent thread.`;
-        }
+### MISIÓN
+Crea una publicación para **${platform}** sobre: **${values.topic.trim()}**.
+- **Audiencia:** ${audience}
+- **Tono:** ${tone}
+- **Objetivo de interacción:** ${goal}
 
-        if (lang === 'es') {
-            const prompt = `Actúa como un **Estratega de Marketing Digital y Director Creativo** especializado en ${values.platform}.
+### ESTRUCTURA
+1. **Gancho** (${hookName}): ${hook} Debe frenar el scroll en la primera línea o los primeros 3 segundos.
+2. **Cuerpo:** estructúralo con el marco **${framework}** y conecta con la audiencia.
+3. **Cierre (CTA):** claro y no agresivo, orientado a: ${goal}.
+4. Si la plataforma lo aprovecha, añade hashtags relevantes y una idea de recurso visual.
 
-🚀 MISIÓN:
-Crear contenido de alto impacto para **${values.platform.toUpperCase()}**.
-- **Tema:** ${values.topic}
-- **Audiencia:** ${values.audience || "General"}
-- **Longitud:** ${values.contentLength}
-- **Contexto Cultural:** ${culturalLabels[values.culturalContext] || 'US / Canada'}
-${seriesSection}
+Usa el formato y la longitud típicos de ${platform}. No inventes estadísticas ni testimonios.
 
-🪝 HOOK (Tipo: ${values.hookType}):
-${hook.es}
-El hook debe detener el scroll en los primeros 1-3 segundos (video) o primera línea (texto).
+IDIOMA DE SALIDA: ESPAÑOL.`,
+            `Act as a **Social Media Strategist** who masters the native format of **${platform}**.
 
-🧠 PSICOLOGÍA DE PERSUASIÓN (Trigger: ${values.psychTrigger}):
-${psych.es}
-Aplica este trigger psicológico de forma auténtica, no manipulativa.
+### MISSION
+Create a post for **${platform}** about: **${values.topic.trim()}**.
+- **Audience:** ${audience}
+- **Tone:** ${tone}
+- **Engagement goal:** ${goal}
 
-📐 FRAMEWORK PERSUASIVO: ${values.framework.toUpperCase()}
-Usa este marco mental para estructurar el copy.
+### STRUCTURE
+1. **Hook** (${hookName}): ${hook} It must stop the scroll on the first line or the first 3 seconds.
+2. **Body:** structure it with the **${framework}** framework and connect with the audience.
+3. **Close (CTA):** clear and not pushy, aimed at: ${goal}.
+4. If the platform benefits from it, add relevant hashtags and a visual asset idea.
 
-🎭 MOOD / TONO: **${values.tone}**
+Use the typical format and length of ${platform}. Do not invent statistics or testimonials.
 
-📝 INSTRUCCIONES DE COPYWRITING:
-1. **El Hook:** Debe detener el scroll. Usa la técnica de ${values.hookType}.
-2. **El Cuerpo:** Desarrolla la narrativa. Conecta con la audiencia.
-3. **El CTA:** Claro pero no agresivo. Optimizado para: ${values.engagementGoal}.
-4. **Tono:** ${values.tone}. Profesional pero apasionado. Autoridad creativa.
-${hashtagsSection}${abSection}${visualSection}
-IDIOMA DE SALIDA: ESPAÑOL.
+OUTPUT LANGUAGE: ENGLISH.`
+        );
 
---------------------------------------------------
-
-🎨 DIRECCIÓN DE ARTE (Prompt para IA de Imagen):
-"/imagine prompt: ${values.visualElements || values.topic} visualized as ${values.visualStyle} composition optimized for ${values.platform}. High contrast, emotional impact. --v 6.0"`.trim();
-
-            onGenerate(prompt);
-        } else {
-            const prompt = `Act as a **Digital Marketing Strategist & Creative Director** specializing in ${values.platform}.
-
-🚀 MISSION:
-Create high-impact content for **${values.platform.toUpperCase()}**.
-- **Topic:** ${values.topic}
-- **Audience:** ${values.audience || "General"}
-- **Length:** ${values.contentLength}
-- **Cultural Context:** ${culturalLabels[values.culturalContext] || 'US / Canada'}
-${seriesSection}
-
-🪝 HOOK (Type: ${values.hookType}):
-${hook.en}
-The hook must stop the scroll in the first 1-3 seconds (video) or first line (text).
-
-🧠 PERSUASION PSYCHOLOGY (Trigger: ${values.psychTrigger}):
-${psych.en}
-Apply this psychological trigger authentically, not manipulatively.
-
-📐 PERSUASIVE FRAMEWORK: ${values.framework.toUpperCase()}
-Use this mental framework to structure the copy.
-
-🎭 MOOD / TONE: **${values.tone}**
-
-📝 COPYWRITING INSTRUCTIONS:
-1. **The Hook:** Must stop the scroll. Use the ${values.hookType} technique.
-2. **The Body:** Develop the narrative. Connect with the audience.
-3. **The CTA:** Clear but not aggressive. Optimized for: ${values.engagementGoal}.
-4. **Tone:** ${values.tone}. Professional yet passionate. Creative authority.
-${hashtagsSection}${abSection}${visualSection}
-OUTPUT LANGUAGE: ENGLISH.
-
---------------------------------------------------
-
-🎨 ART DIRECTION (AI Image Prompt):
-"/imagine prompt: ${values.visualElements || values.topic} visualized as ${values.visualStyle} composition optimized for ${values.platform}. High contrast, emotional impact. --v 6.0"`.trim();
-
-            onGenerate(prompt);
-        }
+        onGenerate(prompt.trim());
     };
 
     useEffect(() => {
@@ -181,12 +100,7 @@ OUTPUT LANGUAGE: ENGLISH.
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <DynamicForm
-                fields={socialFields}
-                values={values}
-                onChange={handleChange}
-                lang={lang}
-            />
+            <DynamicForm fields={socialFields} values={values} onChange={handleChange} lang={lang} />
         </div>
     );
 }

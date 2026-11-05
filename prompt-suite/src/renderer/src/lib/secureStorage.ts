@@ -7,32 +7,45 @@ const KEY_DERIVATION_SALT = new Uint8Array([
     0x6d, 0x70, 0x74, 0x53, 0x75, 0x69, 0x74, 0x65
 ])
 
-async function getOrCreateKey(): Promise<CryptoKey> {
-    try {
-        const storedKey = await invoke<string>('secure_storage_get', { key: 'nexus_storage_key' });
-        if (storedKey) {
-            const rawKey = Uint8Array.from(atob(storedKey), c => c.charCodeAt(0))
-            return crypto.subtle.importKey('raw', rawKey, ALGORITHM, false, ['encrypt', 'decrypt'])
-        }
-    } catch (err) {
-        safeLog('warn', 'Failed to retrieve storage key from keyring, generating new one:', err)
+// String.fromCharCode(...bytes) revienta la pila con arrays grandes (historial), así que se convierte por bloques.
+function bytesToBase64(bytes: Uint8Array): string {
+    let binary = ''
+    const CHUNK = 0x8000
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+    }
+    return btoa(binary)
+}
+
+const KEYCHAIN_ENTRY = 'nexus_storage_key'
+let keyPromise: Promise<CryptoKey> | null = null
+
+// La clave AES vive en el llavero del sistema (nunca en localStorage). Se memoiza la promesa para
+// que cargas simultáneas al arrancar no generen claves distintas.
+function getOrCreateKey(): Promise<CryptoKey> {
+    if (!keyPromise) {
+        keyPromise = loadOrCreateKey().catch(err => {
+            keyPromise = null
+            throw err
+        })
+    }
+    return keyPromise
+}
+
+async function loadOrCreateKey(): Promise<CryptoKey> {
+    // Si el llavero falla (≠ "no existe") se propaga el error: crear otra clave aquí
+    // sobrescribiría la buena y dejaría ilegibles los datos guardados.
+    const stored = await invoke<string>('secure_storage_get', { key: KEYCHAIN_ENTRY })
+    if (stored) {
+        const rawKey = Uint8Array.from(atob(stored), c => c.charCodeAt(0))
+        return crypto.subtle.importKey('raw', rawKey, ALGORITHM, false, ['encrypt', 'decrypt'])
     }
 
-    const key = await crypto.subtle.generateKey(
-        { name: ALGORITHM, length: 256 },
-        true,
-        ['encrypt', 'decrypt']
-    )
-    const exported = await crypto.subtle.exportKey('raw', key)
-    const encoded = btoa(String.fromCharCode(...new Uint8Array(exported)))
-
-    try {
-        await invoke('secure_storage_set', { key: 'nexus_storage_key', value: encoded })
-    } catch (err) {
-        safeLog('error', 'Failed to persist storage key to keyring:', err)
-    }
-
-    return key
+    const fresh = await crypto.subtle.generateKey({ name: ALGORITHM, length: 256 }, true, ['encrypt', 'decrypt'])
+    const raw = new Uint8Array(await crypto.subtle.exportKey('raw', fresh))
+    await invoke('secure_storage_set', { key: KEYCHAIN_ENTRY, value: bytesToBase64(raw) })
+    // Se reimporta como no extraíble: tras guardarla ya no hace falta poder exportarla.
+    return crypto.subtle.importKey('raw', raw, ALGORITHM, false, ['encrypt', 'decrypt'])
 }
 
 export async function secureSetItem(key: string, value: unknown): Promise<void> {
@@ -47,7 +60,7 @@ export async function secureSetItem(key: string, value: unknown): Promise<void> 
     const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length)
     combined.set(iv)
     combined.set(new Uint8Array(encrypted), iv.length)
-    const stored = btoa(String.fromCharCode(...combined))
+    const stored = bytesToBase64(combined)
     localStorage.setItem(key, stored)
 }
 

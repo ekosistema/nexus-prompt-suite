@@ -401,3 +401,89 @@ mod tests {
         cleanup.await.unwrap();
     }
 }
+
+// ── Security hardening tests ────────────────────────────────────────────────
+mod hardening {
+    use crate::ai::engine::{rejects_temperature, LineBuffer};
+    use crate::ai::{get_provider_info, resolve_base_url};
+
+    #[test]
+    fn line_buffer_reassembles_split_events() {
+        let mut lb = LineBuffer::default();
+        assert!(lb.push(b"data: {\"a\":").is_empty());
+        let lines = lb.push(b"1}\r\ndata: [DONE]\n");
+        assert_eq!(lines, vec!["data: {\"a\":1}", "data: [DONE]"]);
+        assert!(lb.finish().is_none());
+    }
+
+    #[test]
+    fn line_buffer_survives_split_utf8_and_trailing_line() {
+        let mut lb = LineBuffer::default();
+        let bytes = "caf\u{e9}\n".as_bytes();
+        assert!(lb.push(&bytes[..4]).is_empty()); // cuts the 2-byte char in half
+        assert_eq!(lb.push(&bytes[4..]), vec!["caf\u{e9}"]);
+        lb.push(b"last");
+        assert_eq!(lb.finish().as_deref(), Some("last"));
+    }
+
+    #[test]
+    fn cloud_providers_are_pinned_to_their_official_host() {
+        for id in ["openai", "anthropic", "groq", "together", "openrouter", "opencode_zen"] {
+            let info = get_provider_info(id).unwrap();
+            assert!(resolve_base_url(&info, "").is_ok(), "{id} default");
+            assert!(resolve_base_url(&info, "https://evil.example.com").is_err(), "{id} foreign host");
+            assert!(resolve_base_url(&info, "http://localhost:8080").is_err(), "{id} localhost");
+        }
+        let openai = get_provider_info("openai").unwrap();
+        assert!(resolve_base_url(&openai, "http://api.openai.com").is_err(), "plain http");
+        assert!(resolve_base_url(&openai, "https://api.openai.com/").is_ok());
+        assert!(resolve_base_url(&openai, "https://api.openai.com.evil.com").is_err(), "suffix trick");
+    }
+
+    #[test]
+    fn self_hosted_providers_keep_a_free_endpoint() {
+        let ollama = get_provider_info("ollama").unwrap();
+        assert_eq!(
+            resolve_base_url(&ollama, "https://ollama.mi-red.ejemplo").unwrap(),
+            "https://ollama.mi-red.ejemplo"
+        );
+    }
+
+    #[test]
+    fn api_key_validation_rejects_bad_values_without_echoing_them() {
+        assert!(crate::validate_api_key("sk-abc123").is_ok());
+        let err = crate::validate_api_key("sk-abc\nX-Injected: 1").unwrap_err();
+        assert!(!err.contains("sk-abc"));
+        assert!(crate::validate_api_key("has space").is_err());
+        assert!(crate::validate_api_key(&"a".repeat(5000)).is_err());
+    }
+
+    #[test]
+    fn renderer_storage_key_is_allowed_and_arbitrary_keys_are_not() {
+        assert!(crate::SECURE_STORAGE_ALLOWED_KEYS.contains(&"nexus_storage_key"));
+        assert!(crate::secure_storage_get("openai_key".into()).is_err());
+    }
+
+    #[test]
+    fn model_catalogue_shapes_are_parsed() {
+        let openai = serde_json::json!({"data":[{"id":"gpt-4o"},{"id":"text-embedding-3-small"},{"id":"whisper-1"}]});
+        assert_eq!(crate::parse_model_ids(&openai, "openai"), vec!["gpt-4o"]);
+        let together = serde_json::json!([{"id":"meta/llama","type":"chat"},{"id":"flux","type":"image"}]);
+        assert_eq!(crate::parse_model_ids(&together, "together"), vec!["meta/llama"]);
+        let anthropic = serde_json::json!({"data":[{"id":"claude-opus-5-5"}],"has_more":false});
+        assert_eq!(crate::parse_model_ids(&anthropic, "anthropic"), vec!["claude-opus-5-5"]);
+    }
+
+    #[test]
+    fn temperature_rejection_is_detected_only_for_400() {
+        use reqwest::StatusCode;
+        assert!(rejects_temperature(StatusCode::BAD_REQUEST, "Unsupported value: 'temperature'"));
+        assert!(!rejects_temperature(StatusCode::UNAUTHORIZED, "temperature"));
+        assert!(!rejects_temperature(StatusCode::BAD_REQUEST, "model not found"));
+    }
+
+    #[test]
+    fn ipv6_loopback_counts_as_local() {
+        assert!(crate::is_localhost("http://[::1]:11434"));
+    }
+}

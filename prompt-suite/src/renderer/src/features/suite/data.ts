@@ -1,3 +1,5 @@
+import { newTemplates } from './templatesNew';
+
 export interface PromptTemplate {
     id: string;
     category: string;
@@ -8,8 +10,7 @@ export interface PromptTemplate {
     tags: string[];
 }
 
-export const promptTemplates: PromptTemplate[] = [
-    // DevOps
+const baseTemplates: PromptTemplate[] = [
     {
         id: 'dockerfile_optimized',
         category: 'devops',
@@ -242,121 +243,6 @@ Perform an exhaustive **STRIDE threat model** for {{APP_NAME}}, a {{APP_TYPE}} w
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['security', 'threat-model', 'stride', 'architecture']
-    },
-    {
-        id: 'security_checklist',
-        category: 'security',
-        icon: '📋',
-        title: { es: 'Security Checklist por Lenguaje', en: 'Language-Specific Security Checklist' },
-        description: { es: 'Genera un checklist de seguridad específico para un lenguaje de programación.', en: 'Generate a language-specific security checklist.' },
-        prompt: {
-            es: `Actúa como un **Application Security Engineer** senior.
-
-Genera un **Security Checklist** accionable y específico para aplicaciones **{{LANG}}** de tipo {{APP_TYPE}}. Cada ítem debe permitir auditar el código de forma concreta.
-
-**Contexto:**
-- **Lenguaje:** {{LANG}}
-- **Tipo de aplicación:** {{APP_TYPE}}
-
-**CATEGORÍAS A CUBRIR:**
-1. **Input Validation**: sanitización, tipos, SQL injection, XSS.
-2. **Authentication & Authorization**: sesiones, JWT/OAuth, RBAC.
-3. **Data Protection**: cifrado en reposo/tránsito, secretos.
-4. **Dependencies**: escaneo de vulnerabilidades y supply chain.
-5. **Error Handling**: fuga de información, stack traces, logging.
-6. **Configuration**: variables de entorno, secretos hardcodeados, defaults inseguros.
-7. **API Security**: rate limiting, CORS, CSRF, límites de tamaño.
-
-**FORMATO DE SALIDA:**
-- Checklist con ítems marcables.
-- Nivel de criticidad (Crítico/Alto/Medio) por ítem.
-- Ejemplo **vulnerable vs seguro** en {{LANG}} para cada punto clave.
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Application Security Engineer**.
-
-Generate an actionable, specific **Security Checklist** for **{{LANG}}** applications of type {{APP_TYPE}}. Each item must allow concrete code auditing.
-
-**Context:**
-- **Language:** {{LANG}}
-- **Application type:** {{APP_TYPE}}
-
-**CATEGORIES TO COVER:**
-1. **Input Validation**: sanitization, types, SQL injection, XSS.
-2. **Authentication & Authorization**: sessions, JWT/OAuth, RBAC.
-3. **Data Protection**: encryption at rest/in transit, secrets.
-4. **Dependencies**: vulnerability scanning and supply chain.
-5. **Error Handling**: information leakage, stack traces, logging.
-6. **Configuration**: environment variables, hardcoded secrets, unsafe defaults.
-7. **API Security**: rate limiting, CORS, CSRF, size limits.
-
-**OUTPUT FORMAT:**
-- Checklist with checkable items.
-- Severity level (Critical/High/Medium) per item.
-- **Vulnerable vs secure** example in {{LANG}} for each key point.
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['security', 'checklist', 'best-practices', 'code-review']
-    },
-    // Writing
-    {
-        id: 'technical_blog',
-        category: 'writing',
-        icon: '📝',
-        title: { es: 'Artículo Técnico para Blog', en: 'Technical Blog Post' },
-        description: { es: 'Genera un artículo técnico completo con código, explicaciones y estructura profesional.', en: 'Generate a complete technical article with code, explanations, and professional structure.' },
-        prompt: {
-            es: `Actúa como un **Technical Writer Senior** con experiencia en desarrollo de software y SEO técnico.
-
-Escribe un **artículo técnico** completo sobre **{{TOPIC}}**, orientado a la keyword **{{HEADLINE_KEYWORD}}** y dirigido a una audiencia de nivel **{{AUDIENCE_LEVEL}}**.
-
-**Contexto del artículo:**
-- **Tema:** {{TOPIC}}
-- **Keyword principal del titular:** {{HEADLINE_KEYWORD}}
-- **Nivel de la audiencia:** {{AUDIENCE_LEVEL}}
-
-**PASOS:**
-1. Propón 3 títulos SEO-optimizados usando la keyword.
-2. Redacta un TL;DR al inicio y una introducción con hook y problema.
-3. Desarrolla el contenido técnico con ejemplos de código correctos y explicados.
-4. Incluye una sección de mejores prácticas y errores comunes.
-5. Cierra con conclusión, siguiente paso y llamada a la acción.
-6. Aporta meta description, keywords y slug sugerido (150/160 chars).
-
-**FORMATO DE SALIDA:**
-- Artículo completo en Markdown con headings jerárquicos.
-- Código con lenguaje especificado.
-- Meta y slug al final del documento.
-- Tiempo estimado de lectura.
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Technical Writer** with software development and technical SEO experience.
-
-Write a complete **technical article** about **{{TOPIC}}**, targeting the keyword **{{HEADLINE_KEYWORD}}** and aimed at a **{{AUDIENCE_LEVEL}}** audience.
-
-**Article context:**
-- **Topic:** {{TOPIC}}
-- **Main headline keyword:** {{HEADLINE_KEYWORD}}
-- **Audience level:** {{AUDIENCE_LEVEL}}
-
-**STEPS:**
-1. Propose 3 SEO-optimized titles using the keyword.
-2. Draft a TL;DR at the top and an introduction with a hook and problem.
-3. Develop the technical content with correct, explained code examples.
-4. Include a best practices and common mistakes section.
-5. Close with a conclusion, next step, and call to action.
-6. Provide meta description, keywords, and suggested slug.
-
-**OUTPUT FORMAT:**
-- Complete article in Markdown with hierarchical headings.
-- Code with specified language.
-- Meta and slug at the end of the document.
-- Estimated reading time.
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['writing', 'blog', 'technical', 'seo']
     },
     {
         id: 'api_documentation',
@@ -710,18 +596,19 @@ LANGUAGE: {{LANG_OUTPUT}}`
         prompt: {
             es: `Actúa como un **Senior Penetration Tester** con certificaciones OSCP/OSWE y ética profesional.
 
-Diseña un **Plan de Penetration Testing** estructurado para **{{APP_NAME}}**, una {{APP_TYPE}}, limitado al alcance **{{SCOPE}}**. El plan debe ser accionable, legalmente correcto y trazable.
+Diseña un **Plan de Penetration Testing** estructurado para **{{APP_NAME}}**, una {{APP_TYPE}}, limitado al alcance **{{SCOPE}}**. El plan debe ser accionable, legalmente correcto y trazable. Si la autorización indicada no es clara o no existe, detén el plan y pide confirmarla antes de continuar.
 
 **Contexto:**
 - **Aplicación:** {{APP_NAME}}
 - **Tipo:** {{APP_TYPE}}
 - **Alcance autorizado:** {{SCOPE}}
+- **Autorización y reglas de enfrentamiento:** {{AUTHORIZATION}}
 
 **FASES DEL PENTEST:**
 1. **Reconnaissance**: OSINT, enumeración de subdominios y detección de stack.
 2. **Scanning**: escaneo de puertos, vulnerabilidades y web application scanning.
 3. **Exploitation**: auth bypass, injection, file upload, SSRF y similares.
-4. **Post-Exploitation**: escalada de privilegios, movimiento lateral y extracción controlada de datos.
+4. **Post-Exploitation**: evaluación de escalada de privilegios y movimiento lateral dentro del alcance, demostrando el impacto con evidencia mínima y sin exfiltrar datos reales.
 5. **Reporting**: resumen ejecutivo, hallazgos técnicos y remediación priorizada.
 
 **FORMATO DE SALIDA:**
@@ -733,18 +620,19 @@ Diseña un **Plan de Penetration Testing** estructurado para **{{APP_NAME}}**, u
 IDIOMA: {{LANG_OUTPUT}}`,
             en: `Act as a **Senior Penetration Tester** with OSCP/OSWE certifications and professional ethics.
 
-Design a structured **Penetration Testing Plan** for **{{APP_NAME}}**, a {{APP_TYPE}}, limited to the **{{SCOPE}}** scope. The plan must be actionable, legally sound, and traceable.
+Design a structured **Penetration Testing Plan** for **{{APP_NAME}}**, a {{APP_TYPE}}, limited to the **{{SCOPE}}** scope. The plan must be actionable, legally sound, and traceable. If the stated authorization is unclear or missing, stop the plan and ask for it to be confirmed before continuing.
 
 **Context:**
 - **Application:** {{APP_NAME}}
 - **Type:** {{APP_TYPE}}
 - **Authorized scope:** {{SCOPE}}
+- **Authorization and rules of engagement:** {{AUTHORIZATION}}
 
 **PENTEST PHASES:**
 1. **Reconnaissance**: OSINT, subdomain enumeration, and stack detection.
 2. **Scanning**: port scanning, vulnerability scanning, and web application scanning.
 3. **Exploitation**: auth bypass, injection, file upload, SSRF, and similar.
-4. **Post-Exploitation**: privilege escalation, lateral movement, and controlled data exfiltration.
+4. **Post-Exploitation**: assessing privilege escalation and lateral movement within scope, demonstrating impact with minimal evidence and without exfiltrating real data.
 5. **Reporting**: executive summary, technical findings, and prioritized remediation.
 
 **OUTPUT FORMAT:**
@@ -1053,66 +941,6 @@ LANGUAGE: {{LANG_OUTPUT}}`
         tags: ['secrets', 'vault', 'security', 'rotation', 'credentials']
     },
     {
-        id: 'api_security_audit',
-        category: 'security',
-        icon: '🌐',
-        title: { es: 'API Security Audit', en: 'API Security Audit' },
-        description: { es: 'Revisión de endpoints con auth, rate limiting, input validation.', en: 'Endpoint review with auth, rate limiting, input validation.' },
-        prompt: {
-            es: `Actúa como un **API Security Specialist** con metodología OWASP API Security.
-
-Realiza un **API Security Audit** de la API **{{API_URL}}**, construida con **{{FRAMEWORK}}**, dentro del alcance **{{SCOPE}}**.
-
-**Contexto:**
-- **API:** {{API_URL}}
-- **Framework:** {{FRAMEWORK}}
-- **Alcance:** {{SCOPE}}
-
-**CHECKLIST A EVALUAR:**
-1. **Authentication**: robustez de JWT/OAuth/API keys.
-2. **Authorization**: RBAC/ABAC y prevención de IDOR.
-3. **Input validation**: SQLi, XSS e inyecciones.
-4. **Rate limiting** y throttling.
-5. **CORS** y políticas de origen.
-6. **Error handling**: fuga de información en respuestas.
-7. **Data exposure**: over-fetching y exposición de PII.
-8. **Logging y monitoring** de actividad sensible.
-
-**FORMATO DE SALIDA:**
-- Reporte con hallazgos por área, severidad y pasos de remediación.
-- Ejemplo de request maliciosa vs segura por hallazgo relevante.
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **API Security Specialist** with an OWASP API Security methodology.
-
-Perform an **API Security Audit** of the **{{API_URL}}** API, built with **{{FRAMEWORK}}**, within the **{{SCOPE}}** scope.
-
-**Context:**
-- **API:** {{API_URL}}
-- **Framework:** {{FRAMEWORK}}
-- **Scope:** {{SCOPE}}
-
-**CHECKLIST TO EVALUATE:**
-1. **Authentication**: robustness of JWT/OAuth/API keys.
-2. **Authorization**: RBAC/ABAC and IDOR prevention.
-3. **Input validation**: SQLi, XSS, and injections.
-4. **Rate limiting** and throttling.
-5. **CORS** and origin policies.
-6. **Error handling**: information leakage in responses.
-7. **Data exposure**: over-fetching and PII exposure.
-8. **Logging and monitoring** of sensitive activity.
-
-**OUTPUT FORMAT:**
-- Report with findings per area, severity, and remediation steps.
-- Malicious vs secure request example per relevant finding.
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['api', 'security', 'audit', 'authentication', 'authorization']
-    },
-    // ─── Writing Extended ─────────────────────────────────────────────────────
-
-    {
         id: 'incident_postmortem',
         category: 'writing',
         icon: '🔍',
@@ -1399,252 +1227,6 @@ LANGUAGE: {{LANG_OUTPUT}}`
     // ─── Social Media ─────────────────────────────────────────────────────────
 
     {
-        id: 'twitter_thread',
-        category: 'social',
-        icon: '🧵',
-        title: { es: 'Hilo Viral en X/Twitter', en: 'Viral X/Twitter Thread' },
-        description: { es: 'Thread de 8-12 tweets con hook, desarrollo y CTA.', en: '8-12 tweet thread with hook, development, and CTA.' },
-        prompt: {
-            es: `Actúa como un **Twitter Growth Strategist** con enfoque en contenido de alto engagement.
-
-Crea un **Hilo Viral en X/Twitter** sobre **{{TOPIC}}** para **{{AUDIENCE}}**, con un hook de tipo **{{HOOK_TYPE}}** y cierre con **{{CTA_MESSAGE}}**.
-
-**Contexto:**
-- **Tema:** {{TOPIC}}
-- **Audiencia:** {{AUDIENCE}}
-- **Tipo de hook:** {{HOOK_TYPE}}
-- **CTA de cierre:** {{CTA_MESSAGE}}
-
-**ESTRUCTURA:**
-1. Tweet 1: hook potente (curiosity gap, contrarian o story).
-2. Tweets 2-7: desarrollo con valor, datos y ejemplos.
-3. Tweets 8-10: insights y takeaways.
-4. Tweet final: CTA ({{CTA_MESSAGE}}) + request de engagement.
-
-**REGLAS:**
-- Máx. 280 caracteres por tweet.
-- Líneas cortas y scannable.
-- Numeración (1/10, 2/10...) y espacios entre párrafos.
-
-**FORMATO DE SALIDA:**
-- Thread completo numerado con notas de estrategia por tweet.
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Twitter Growth Strategist** focused on high-engagement content.
-
-Create a **Viral X/Twitter Thread** about **{{TOPIC}}** for **{{AUDIENCE}}**, with a **{{HOOK_TYPE}}** hook and a closing **{{CTA_MESSAGE}}**.
-
-**Context:**
-- **Topic:** {{TOPIC}}
-- **Audience:** {{AUDIENCE}}
-- **Hook type:** {{HOOK_TYPE}}
-- **Closing CTA:** {{CTA_MESSAGE}}
-
-**STRUCTURE:**
-1. Tweet 1: strong hook (curiosity gap, contrarian, or story).
-2. Tweets 2-7: development with value, data, and examples.
-3. Tweets 8-10: insights and takeaways.
-4. Final tweet: CTA ({{CTA_MESSAGE}}) + engagement request.
-
-**RULES:**
-- Max. 280 characters per tweet.
-- Short, scannable lines.
-- Numbering (1/10, 2/10...) and paragraph spacing.
-
-**OUTPUT FORMAT:**
-- Complete numbered thread with strategy notes per tweet.
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['twitter', 'thread', 'viral', 'social-media', 'engagement']
-    },
-    {
-        id: 'instagram_carousel',
-        category: 'social',
-        icon: '📸',
-        title: { es: 'Carrusel de Instagram', en: 'Instagram Carousel' },
-        description: { es: 'Estructura de 8-10 slides con copy y dirección visual.', en: '8-10 slide structure with copy and visual direction.' },
-        prompt: {
-            es: `Actúa como un **Instagram Content Strategist** con dominio visual y de copy.
-
-Diseña un **Carrusel de Instagram** de 8-10 slides sobre **{{TOPIC}}**, con objetivo **{{GOAL}}**, estilo visual **{{VISUAL_STYLE}}** y dirigido a **{{AUDIENCE}}**.
-
-**Contexto:**
-- **Tema:** {{TOPIC}}
-- **Objetivo:** {{GOAL}}
-- **Estilo visual:** {{VISUAL_STYLE}}
-- **Audiencia:** {{AUDIENCE}}
-
-**ESTRUCTURA:**
-1. Slide 1: hook visual + título impactante.
-2. Slide 2: contexto/problema.
-3. Slides 3-7: una idea de valor por slide.
-4. Slide 8: resumen y takeaways.
-5. Slide 9: CTA (save, share, comment).
-6. Slide 10: slide de marca.
-
-**POR SLIDE, ENTREGA:**
-- Copy del texto.
-- Brief visual (colores, elementos, layout) coherente con {{VISUAL_STYLE}}.
-- Tipografía sugerida.
-
-**FORMATO DE SALIDA:**
-- Desglose slide-by-slide con copy + brief visual.
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **Instagram Content Strategist** with visual and copy expertise.
-
-Design an 8-10 slide **Instagram Carousel** about **{{TOPIC}}**, with the goal of **{{GOAL}}**, the visual style **{{VISUAL_STYLE}}**, aimed at **{{AUDIENCE}}**.
-
-**Context:**
-- **Topic:** {{TOPIC}}
-- **Goal:** {{GOAL}}
-- **Visual style:** {{VISUAL_STYLE}}
-- **Audience:** {{AUDIENCE}}
-
-**STRUCTURE:**
-1. Slide 1: visual hook + impactful title.
-2. Slide 2: context/problem.
-3. Slides 3-7: one value idea per slide.
-4. Slide 8: summary and takeaways.
-5. Slide 9: CTA (save, share, comment).
-6. Slide 10: brand slide.
-
-**PER SLIDE, DELIVER:**
-- Text copy.
-- Visual brief (colors, elements, layout) consistent with {{VISUAL_STYLE}}.
-- Suggested typography.
-
-**OUTPUT FORMAT:**
-- Slide-by-slide breakdown with copy + visual brief.
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['instagram', 'carousel', 'social-media', 'visual', 'content']
-    },
-    {
-        id: 'tiktok_reel_script',
-        category: 'social',
-        icon: '🎬',
-        title: { es: 'Guion de TikTok/Reel', en: 'TikTok/Reel Script' },
-        description: { es: 'Guion de 30-60s con hook visual, desarrollo y CTA.', en: '30-60s script with visual hook, development, and CTA.' },
-        prompt: {
-            es: `Actúa como un **Short-Form Video Strategist** experto en TikTok y Reels.
-
-Escribe el **Guion de TikTok/Reel** sobre **{{TOPIC}}**, de **{{DURATION}}** de duración y en estilo **{{STYLE}}**. El guion debe maximizar retención en los primeros 3 segundos.
-
-**Contexto:**
-- **Tema:** {{TOPIC}}
-- **Duración:** {{DURATION}}
-- **Estilo:** {{STYLE}}
-
-**ESTRUCTURA POR TIMESTAMPS:**
-1. **Hook (0-3s)**: visual + verbal que detenga el scroll.
-2. **Setup (3-8s)**: contexto rápido y promesa.
-3. **Value (8s-...)**: contenido principal con cortes dinámicos.
-4. **CTA (últimos 5s)**: acción natural.
-
-**INCLUYE:**
-- Script palabra por palabra.
-- Indicaciones visuales por segmento.
-- Timing de cortes.
-- Sugerencia de audio/trend según {{STYLE}}.
-- Texto en pantalla (captions).
-- Hashtags recomendados.
-
-**FORMATO DE SALIDA:**
-- Guion con timestamps y notas de producción.
-
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Short-Form Video Strategist** expert in TikTok and Reels.
-
-Write the **TikTok/Reel Script** about **{{TOPIC}}**, **{{DURATION}}** long, in a **{{STYLE}}** style. The script must maximize retention in the first 3 seconds.
-
-**Context:**
-- **Topic:** {{TOPIC}}
-- **Duration:** {{DURATION}}
-- **Style:** {{STYLE}}
-
-**STRUCTURE WITH TIMESTAMPS:**
-1. **Hook (0-3s)**: visual + verbal that stops the scroll.
-2. **Setup (3-8s)**: quick context and promise.
-3. **Value (8s-...)**: main content with dynamic cuts.
-4. **CTA (last 5s)**: natural call to action.
-
-**INCLUDE:**
-- Word-for-word script.
-- Visual directions per segment.
-- Cut timing.
-- Audio/trend suggestion per {{STYLE}}.
-- On-screen text (captions).
-- Recommended hashtags.
-
-**OUTPUT FORMAT:**
-- Script with timestamps and production notes.
-
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['tiktok', 'reels', 'video', 'script', 'short-form']
-    },
-    {
-        id: 'linkedin_post',
-        category: 'social',
-        icon: '💼',
-        title: { es: 'Post LinkedIn Thought Leadership', en: 'LinkedIn Thought Leadership Post' },
-        description: { es: 'Post largo con storytelling profesional y engagement.', en: 'Long-form post with professional storytelling and engagement.' },
-        prompt: {
-            es: `Actúa como un **LinkedIn Growth Expert**.
-
-Crea un **Post de LinkedIn Thought Leadership** para:
-- **Tema:** {{TOPIC}}
-- **Industria:** {{INDUSTRY}}
-- **Posición:** {{POSITION}}
-- **CTA:** {{CTA}}
-
-ESTRUCTURA:
-1. **Hook (primera línea)**: Contrarian, story, o dato impactante
-2. **Contexto**: Experiencia personal o caso real
-3. **Insights**: 3-5 puntos de valor con formato scannable
-4. **Lección**: Takeaway principal
-5. **CTA**: Pregunta para generar comentarios
-
-REGLAS:
-- Líneas cortas (máx 2 líneas)
-- Espacios entre párrafos
-- Sin hashtags en el cuerpo (máx 3 al final)
-- Tono profesional pero auténtico
-- Máximo 3000 caracteres
-
-FORMATO: Post completo con notas de estrategia.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **LinkedIn Growth Expert**.
-
-Create a **LinkedIn Thought Leadership Post** for:
-- **Topic:** {{TOPIC}}
-- **Industry:** {{INDUSTRY}}
-- **Position:** {{POSITION}}
-- **CTA:** {{CTA}}
-
-STRUCTURE:
-1. **Hook (first line)**: Contrarian, story, or impactful data
-2. **Context**: Personal experience or real case
-3. **Insights**: 3-5 value points with scannable format
-4. **Lesson**: Main takeaway
-5. **CTA**: Question to generate comments
-
-RULES:
-- Short lines (max 2 lines)
-- Spacing between paragraphs
-- No hashtags in body (max 3 at end)
-- Professional but authentic tone
-- Max 3000 characters
-
-FORMAT: Complete post with strategy notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['linkedin', 'thought-leadership', 'professional', 'engagement', 'b2b']
-    },
-    {
         id: 'content_calendar',
         category: 'social',
         icon: '📅',
@@ -1693,168 +1275,6 @@ FORMAT: Weekly table with daily details.
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['calendar', 'content', 'planning', 'social-media', 'schedule']
-    },
-    {
-        id: 'youtube_script',
-        category: 'social',
-        icon: '🎥',
-        title: { es: 'Guion de YouTube', en: 'YouTube Script' },
-        description: { es: 'Guion completo con intro, desarrollo, CTAs y end screen.', en: 'Complete script with intro, development, CTAs, and end screen.' },
-        prompt: {
-            es: `Actúa como un **YouTube Content Strategist**.
-
-Crea un **Guion de YouTube** para:
-- **Tema:** {{TOPIC}}
-- **Duración:** {{DURATION}}
-- **Estilo:** {{STYLE}}
-- **CTA:** {{CTA}}
-
-ESTRUCTURA:
-1. **Hook (0-15s)**: Gancho visual + verbal
-2. **Intro (15-30s)**: Qué van a aprender + por qué importa
-3. **Desarrollo**: Contenido principal con timestamps
-4. **CTA intermedio**: Subscribe/like reminder
-5. **Conclusión**: Resumen + CTA final
-6. **End screen**: Video recomendado + subscribe
-
-INCLUYE:
-- Script palabra por palabra
-- Indicaciones de B-roll
-- Timestamps sugeridos
-- Título optimizado SEO
-- Descripción con keywords
-- Tags recomendados
-
-FORMATO: Guion con timestamps y notas de producción.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **YouTube Content Strategist**.
-
-Create a **YouTube Script** for:
-- **Topic:** {{TOPIC}}
-- **Duration:** {{DURATION}}
-- **Style:** {{STYLE}}
-- **CTA:** {{CTA}}
-
-STRUCTURE:
-1. **Hook (0-15s)**: Visual + verbal hook
-2. **Intro (15-30s)**: What they'll learn + why it matters
-3. **Development**: Main content with timestamps
-4. **Mid CTA**: Subscribe/like reminder
-5. **Conclusion**: Summary + final CTA
-6. **End screen**: Recommended video + subscribe
-
-INCLUDE:
-- Word-for-word script
-- B-roll directions
-- Suggested timestamps
-- SEO-optimized title
-- Description with keywords
-- Recommended tags
-
-FORMAT: Script with timestamps and production notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['youtube', 'script', 'video', 'seo', 'content']
-    },
-    // ─── Creative ─────────────────────────────────────────────────────────────
-
-    {
-        id: 'branding_session',
-        category: 'creative',
-        icon: '🎨',
-        title: { es: 'Sesión de Branding', en: 'Branding Session' },
-        description: { es: 'Ideación de identidad de marca con naming, valores y personalidad.', en: 'Brand identity ideation with naming, values, and personality.' },
-        prompt: {
-            es: `Actúa como un **Senior Brand Strategist**.
-
-Conduce una **Sesión de Branding** para:
-- **Empresa:** {{COMPANY}}
-- **Sector:** {{SECTOR}}
-- **Audiencia:** {{AUDIENCE}}
-- **Técnica:** {{TECHNIQUE}}
-
-ENTREGABLES:
-1. Brand purpose y visión
-2. Brand values (3-5)
-3. Brand personality (archetype)
-4. Brand voice y tone guidelines
-5. Naming options (10+ con análisis)
-6. Tagline options (5+)
-7. Brand story
-8. Visual direction brief (colores, tipografía, estilo)
-
-FORMATO: Documento de brand strategy completo.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Senior Brand Strategist**.
-
-Conduct a **Branding Session** for:
-- **Company:** {{COMPANY}}
-- **Sector:** {{SECTOR}}
-- **Audience:** {{AUDIENCE}}
-- **Technique:** {{TECHNIQUE}}
-
-DELIVERABLES:
-1. Brand purpose and vision
-2. Brand values (3-5)
-3. Brand personality (archetype)
-4. Brand voice and tone guidelines
-5. Naming options (10+ with analysis)
-6. Tagline options (5+)
-7. Brand story
-8. Visual direction brief (colors, typography, style)
-
-FORMAT: Complete brand strategy document.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['branding', 'identity', 'naming', 'strategy', 'creative']
-    },
-    {
-        id: 'product_ideation',
-        category: 'creative',
-        icon: '🚀',
-        title: { es: 'Lluvia de Ideas de Producto', en: 'Product Ideation' },
-        description: { es: 'Generación de conceptos de producto con SCAMPER.', en: 'Product concept generation with SCAMPER.' },
-        prompt: {
-            es: `Actúa como un **Product Innovation Lead**.
-
-Realiza una **Lluvia de Ideas de Producto** para:
-- **Sector:** {{SECTOR}}
-- **Problema:** {{PROBLEM}}
-- **Técnica:** {{TECHNIQUE}}
-- **Restricción:** {{CONSTRAINT}}
-
-PROCESO:
-1. Define el problema claramente
-2. Aplica la técnica de ideación
-3. Genera 15-20 conceptos
-4. Evalúa cada concepto (viabilidad, impacto, originalidad)
-5. Selecciona top 3
-6. Desarrolla cada top concept (value prop, features, monetization)
-7. Crea un one-pager por concepto
-
-FORMATO: Documento con conceptos evaluados.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Product Innovation Lead**.
-
-Perform a **Product Ideation Session** for:
-- **Sector:** {{SECTOR}}
-- **Problem:** {{PROBLEM}}
-- **Technique:** {{TECHNIQUE}}
-- **Constraint:** {{CONSTRAINT}}
-
-PROCESS:
-1. Define the problem clearly
-2. Apply the ideation technique
-3. Generate 15-20 concepts
-4. Evaluate each concept (feasibility, impact, originality)
-5. Select top 3
-6. Develop each top concept (value prop, features, monetization)
-7. Create a one-pager per concept
-
-FORMAT: Document with evaluated concepts.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['product', 'ideation', 'innovation', 'scamper', 'concepts']
     },
     {
         id: 'music_concept',
@@ -1958,7 +1378,7 @@ LANGUAGE: {{LANG_OUTPUT}}`
     },
     {
         id: 'business_model_canvas',
-        category: 'creative',
+        category: 'business',
         icon: '🏢',
         title: { es: 'Modelo de Negocio Canvas', en: 'Business Model Canvas' },
         description: { es: 'Canvas completo con propuesta de valor y revenue streams.', en: 'Complete canvas with value proposition and revenue streams.' },
@@ -2013,62 +1433,8 @@ LANGUAGE: {{LANG_OUTPUT}}`
     // ─── Content ──────────────────────────────────────────────────────────────
 
     {
-        id: 'seo_blog_post',
-        category: 'content',
-        icon: '📄',
-        title: { es: 'Artículo de Blog SEO', en: 'SEO Blog Post' },
-        description: { es: 'Post largo optimizado para SEO con meta, estructura y keywords.', en: 'Long-form post optimized for SEO with meta, structure, and keywords.' },
-        prompt: {
-            es: `Actúa como un **SEO Content Writer**.
-
-Escribe un **Artículo de Blog SEO** para:
-- **Tema:** {{TOPIC}}
-- **Keyword principal:** {{KEYWORD}}
-- **Audiencia:** {{AUDIENCE}}
-- **Extensión:** {{LENGTH}}
-
-INCLUYE:
-1. SEO title (60 chars max)
-2. Meta description (155 chars max)
-3. URL slug
-4. H1, H2, H3 structure
-5. Contenido completo (1500-3000 palabras)
-6. Internal linking suggestions
-7. Image alt text suggestions
-8. FAQ section (para featured snippet)
-9. Schema markup suggestion
-
-REQUISITOS: Keyword density 1-2%, readability score alto, EEAT.
-FORMATO: Markdown completo con notas SEO.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as an **SEO Content Writer**.
-
-Write an **SEO Blog Post** for:
-- **Topic:** {{TOPIC}}
-- **Main keyword:** {{KEYWORD}}
-- **Audience:** {{AUDIENCE}}
-- **Length:** {{LENGTH}}
-
-INCLUDE:
-1. SEO title (60 chars max)
-2. Meta description (155 chars max)
-3. URL slug
-4. H1, H2, H3 structure
-5. Full content (1500-3000 words)
-6. Internal linking suggestions
-7. Image alt text suggestions
-8. FAQ section (for featured snippet)
-9. Schema markup suggestion
-
-REQUIREMENTS: Keyword density 1-2%, high readability score, EEAT.
-FORMAT: Complete Markdown with SEO notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['blog', 'seo', 'content', 'writing', 'keywords']
-    },
-    {
         id: 'newsletter',
-        category: 'content',
+        category: 'writing',
         icon: '📧',
         title: { es: 'Newsletter de Valor', en: 'Value Newsletter' },
         description: { es: 'Newsletter con storytelling, insights y CTA.', en: 'Newsletter with storytelling, insights, and CTA.' },
@@ -2119,68 +1485,8 @@ LANGUAGE: {{LANG_OUTPUT}}`
         tags: ['newsletter', 'email', 'content', 'storytelling', 'value']
     },
     {
-        id: 'podcast_script',
-        category: 'content',
-        icon: '🎙️',
-        title: { es: 'Guion de Podcast', en: 'Podcast Script' },
-        description: { es: 'Guion completo con intro, segmentos, preguntas y cierre.', en: 'Complete script with intro, segments, questions, and close.' },
-        prompt: {
-            es: `Actúa como un **Podcast Producer**.
-
-Crea un **Guion de Podcast** para:
-- **Tema:** {{TOPIC}}
-- **Formato:** {{FORMAT}}
-- **Duración:** {{DURATION}}
-- **Invitado:** {{GUEST}}
-
-ESTRUCTURA:
-1. Intro (30s): Hook + tema + presentación
-2. Segmento 1: Contexto y setup
-3. Segmento 2: Deep dive / entrevista
-4. Segmento 3: Insights y takeaways
-5. Outro: Resumen + CTA + credits
-
-INCLUYE:
-- Script palabra por palabra para host
-- Preguntas para invitado
-- Timestamps
-- Sound effect cues
-- Show notes
-- Episode title options
-
-FORMATO: Guion con timestamps y notas de producción.
-IDIOMA: {{LANG_OUTPUT}}`,
-            en: `Act as a **Podcast Producer**.
-
-Create a **Podcast Script** for:
-- **Topic:** {{TOPIC}}
-- **Format:** {{FORMAT}}
-- **Duration:** {{DURATION}}
-- **Guest:** {{GUEST}}
-
-STRUCTURE:
-1. Intro (30s): Hook + topic + introduction
-2. Segment 1: Context and setup
-3. Segment 2: Deep dive / interview
-4. Segment 3: Insights and takeaways
-5. Outro: Summary + CTA + credits
-
-INCLUDE:
-- Word-for-word host script
-- Guest questions
-- Timestamps
-- Sound effect cues
-- Show notes
-- Episode title options
-
-FORMAT: Script with timestamps and production notes.
-LANGUAGE: {{LANG_OUTPUT}}`
-        },
-        tags: ['podcast', 'script', 'audio', 'interview', 'production']
-    },
-    {
         id: 'whitepaper',
-        category: 'content',
+        category: 'writing',
         icon: '📊',
         title: { es: 'Whitepaper / Informe Técnico', en: 'Whitepaper / Technical Report' },
         description: { es: 'Documento largo con datos, análisis y conclusiones.', en: 'Long-form document with data, analysis, and conclusions.' },
@@ -2232,7 +1538,7 @@ LANGUAGE: {{LANG_OUTPUT}}`
     },
     {
         id: 'case_study',
-        category: 'content',
+        category: 'writing',
         icon: '📋',
         title: { es: 'Case Study / Caso de Éxito', en: 'Case Study / Success Story' },
         description: { es: 'Historia de cliente con problema, solución y resultados.', en: 'Customer story with problem, solution, and results.' },
@@ -2285,85 +1591,9 @@ FORMAT: Document with clear sections.
 LANGUAGE: {{LANG_OUTPUT}}`
         },
         tags: ['case-study', 'success', 'client', 'results', 'storytelling']
-    },
+    }
 ];
 
+export const promptTemplates: PromptTemplate[] = [...baseTemplates, ...newTemplates];
 
-export interface DevConfig {
-    rol: string;
-    arch: string[];
-    focus: string;
-}
 
-export const dev_config: Record<string, DevConfig> = {
-    web_app: { rol: "Staff Full Stack Engineer", arch: ["Clean Architecture", "Vertical Slice", "Micro-Frontends"], focus: "Core Web Vitals, A11y, Scalability" },
-    desktop_app: { rol: "Senior Desktop Application Engineer", arch: ["Electron (Main/Renderer separation)", "Tauri (Rust Backend)", "Flutter Desktop", "Native (Swift/C#)"], focus: "Memory Management, Native APIs Integration, Updater Strategy, Offline-first" },
-    mobile_app: { rol: "Principal Mobile Engineer", arch: ["MVVM + Coordinator", "TCA (Composable)", "Clean + Bloc"], focus: "Frame Drop Analysis, Battery Performance" },
-    devops: { rol: "Senior DevOps & Cloud Architect", arch: ["Immutable Infrastructure", "GitOps (ArgoCD)", "Serverless Event-Driven"], focus: "High Availability, Disaster Recovery, IaC (Terraform/Ansible)" },
-    backend_api: { rol: "Backend Lead", arch: ["Event-Driven Microservices", "CQRS", "Modular Monolith"], focus: "Idempotency, CAP Theorem Tradeoffs" },
-    multimedia: { rol: "Creative Technologist Lead", arch: ["Node-Based Dataflow", "ECS (Entity Component)", "Compute Shader Pipeline"], focus: "GPU Optimization, Stable 60fps, Low Latency" },
-    data_science: { rol: "MLOps Engineer", arch: ["Feature Store", "Federated Learning"], focus: "Data Drift, Reproducibility" }
-};
-
-export const studio_profiles: Record<string, { role: { es: string; en: string }; tone: { es: string; en: string } }> = {
-    expert: {
-        role: { es: "Experto en la Materia (SME)", en: "Subject Matter Expert (SME)" },
-        tone: { es: "Técnico, denso y preciso", en: "Technical, dense, and precise" }
-    },
-    student: {
-        role: { es: "Mentor Académico Riguroso", en: "Rigorous Academic Mentor" },
-        tone: { es: "Didáctico, estructurado y crítico (Nivel Universitario)", en: "Didactic, structured, and critical (University Level)" }
-    },
-    creative: {
-        role: { es: "Director de Arte / Visionario", en: "Art Director / Visionary" },
-        tone: { es: "Conceptual, estético y metafórico", en: "Conceptual, aesthetic, and metaphorical" }
-    },
-    executive: {
-        role: { es: "Consultor de Estrategia", en: "Strategy Consultant" },
-        tone: { es: "Ejecutivo, conciso y orientado al ROI", en: "Executive, concise, and ROI-oriented" }
-    }
-};
-
-export const social_config: Record<string, { rol: string; ratio: string }> = {
-    instagram: { rol: "Creative Visual Director", ratio: "--ar 4:5" },
-    tiktok: { rol: "Viral Content Strategist", ratio: "--ar 9:16" },
-    youtube: { rol: "Multimedia Producer", ratio: "--ar 16:9" },
-    twitter: { rol: "Tech & Art Influencer", ratio: "--ar 16:9" },
-    linkedin: { rol: "Industry Thought Leader", ratio: "--ar 4:5" },
-    facebook: { rol: "Digital Marketing Manager", ratio: "--ar 1:1" }
-};
-
-export const social_formats: Record<string, { group: string; label: { es: string; en: string } }[]> = {
-    instagram: [
-        { group: "🎵", label: { es: "Visualizer para Audio (Reel)", en: "Audio Visualizer (Reel)" } },
-        { group: "🎵", label: { es: "Anuncio de Lanzamiento (Single/EP)", en: "Release Announcement (Single/EP)" } },
-        { group: "🚀", label: { es: "Showcase UI/UX (Carousel)", en: "UI/UX Showcase (Carousel)" } },
-        { group: "🚀", label: { es: "Feature Highlight", en: "Feature Highlight" } },
-        { group: "🎨", label: { es: "Process Video (Generative Art)", en: "Process Video (Generative Art)" } },
-        { group: "🎨", label: { es: "Render Final (Estático)", en: "Final Render (Static)" } }
-    ],
-    tiktok: [
-        { group: "🚀", label: { es: "App Hack / Hidden Feature", en: "App Hack / Hidden Feature" } },
-        { group: "🎵", label: { es: "Behind the Song", en: "Behind the Song" } },
-        { group: "🎨", label: { es: "Live Coding Session", en: "Live Coding Session" } },
-        { group: "⚡", label: { es: "Trend Adaptation", en: "Trend Adaptation" } }
-    ],
-    twitter: [
-        { group: "🚀", label: { es: "Launch Thread (Build in Public)", en: "Launch Thread (Build in Public)" } },
-        { group: "🎨", label: { es: "Daily Render / WIP", en: "Daily Render / WIP" } },
-        { group: "🔧", label: { es: "Architecture Deep Dive", en: "Architecture Deep Dive" } }
-    ],
-    youtube: [
-        { group: "🎵", label: { es: "Official Lyric Video", en: "Official Lyric Video" } },
-        { group: "🚀", label: { es: "App Trailer / Promo", en: "App Trailer / Promo" } },
-        { group: "🎓", label: { es: "Tutorial Técnico / Breakdown", en: "Technical Tutorial / Breakdown" } }
-    ],
-    linkedin: [
-        { group: "🚀", label: { es: "Case Study (Problem/Solution)", en: "Case Study (Problem/Solution)" } },
-        { group: "💡", label: { es: "Industry Insight", en: "Industry Insight" } }
-    ],
-    facebook: [
-        { group: "📢", label: { es: "Direct Response Ad", en: "Direct Response Ad" } },
-        { group: "📅", label: { es: "Event Invitation", en: "Event Invitation" } }
-    ]
-};

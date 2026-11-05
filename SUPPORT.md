@@ -1,64 +1,81 @@
-# Support
+# 💬 Getting Help
 
-## Getting Help
-
-Nexus Prompt Suite is a community-supported open-source project. Here are the ways to get help:
-
-### 📖 Documentation
-
-| Resource | Description |
-| :--- | :--- |
-| [README.md](./README.md) | Project overview, installation, usage, and API reference |
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | Architecture deep-dive, local setup, testing, and CI/CD |
-| [docs/INLINE_STANDARDS.md](./docs/INLINE_STANDARDS.md) | RustDoc and JSDoc conventions for contributors |
-
-### 🐛 Bug Reports
-
-Found a bug? Please open an issue using the [Bug Report template](https://github.com/ekosistema/nexus-prompt-suite/issues/new?template=bug_report.md).
-
-Include your OS, Nexus version, AI provider, and reproduction steps.
-
-### 💡 Feature Requests
-
-Have an idea? Open a [Feature Request](https://github.com/ekosistema/nexus-prompt-suite/issues/new?template=feature_request.md).
-
-### 🔒 Security Issues
-
-For security vulnerabilities, **do not open a public issue**. See [SECURITY.md](./SECURITY.md) for responsible disclosure instructions.
-
-### ❓ Questions & Discussion
-
-- **GitHub Issues**: Best for bug reports and feature requests.
-- **GitHub Discussions**: Coming soon for Q&A, ideas, and general topics.
-- **Email**: [info@celerolab.com](mailto:info@celerolab.com) for general inquiries.
-
-### 💬 Community
-
-- Star the repo to show support and stay updated.
-- Follow [CeleroLab](https://celerolab.com?utm_source=github&utm_medium=support&utm_campaign=nexus-prompt-suite) for project updates.
-
-## Frequently Asked Questions
-
-### Is Nexus Prompt Suite free?
-
-Yes. Nexus Prompt Suite is free and open-source under the MIT License. You may also need API keys from AI providers (OpenAI, Anthropic, etc.), which have their own pricing.
-
-### Does Nexus send my data anywhere?
-
-**No.** Nexus operates 100% locally. Your prompts, settings, and response history never leave your machine. API keys are encrypted in the OS-native keychain. There is zero telemetry, zero analytics, and zero external logging.
-
-### Which AI providers are supported?
-
-12 providers: Ollama (local), OpenAI, OpenRouter, Groq, LM Studio, OpenWebUI, vLLM, Together AI, Anthropic, Google Gemini, OpenCode Zen, and OpenCode Go.
-
-### How do I keep my prompts private?
-
-Use **Ollama** as your provider — all inference runs on your local hardware with no internet connection required.
-
-### Can I contribute?
-
-Absolutely. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines. We welcome everything from documentation fixes to new suite workspaces.
+Nexus Prompt Suite is a community-supported open-source project. Here's the quickest
+way to get unstuck.
 
 ---
 
-**Nexus Prompt Suite** — Potentiating human intelligence with AI, privately.
+## 🧭 Where to go
+
+| I need to… | Go here |
+| :--- | :--- |
+| Learn how Nexus works | [README](README.md) |
+| Set it up, build it or understand the code | [DEVELOPMENT.md](DEVELOPMENT.md) |
+| Fix a problem I ran into | [Troubleshooting](DEVELOPMENT.md#-troubleshooting) |
+| Report a bug | [Bug report](https://github.com/ekosistema/nexus-prompt-suite/issues/new?template=bug_report.md) |
+| Suggest an idea | [Feature request](https://github.com/ekosistema/nexus-prompt-suite/issues/new?template=feature_request.md) |
+| Report a security problem | [SECURITY.md](SECURITY.md) — **please don't use public issues** |
+| Contribute | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Reach the team | [info@celerolab.com](mailto:info@celerolab.com) |
+
+A good bug report includes your **Nexus version** (bottom of the sidebar), your
+**operating system**, the **provider and model** you used, and the steps to reproduce.
+Never include an API key.
+
+---
+
+## ❓ FAQ
+
+### Is Nexus free?
+
+Yes. Nexus is open source under the MIT license. Hosted AI providers charge for their
+own API usage; local options such as Ollama are free.
+
+### Does Nexus send my data anywhere?
+
+Only to the AI provider **you** choose, and only when you generate a prompt with AI.
+In **No AI** mode, or with a local provider such as Ollama, nothing leaves your
+computer. Nexus has no telemetry, analytics or servers of its own.
+
+### Where are my API keys kept?
+
+In your operating system's keychain. The Nexus interface can save or delete a key but
+can never read it back. See [SECURITY.md](SECURITY.md).
+
+### Which providers are supported?
+
+Twelve: Ollama, OpenAI, OpenRouter, Groq, LM Studio, OpenWebUI, vLLM, Together AI,
+Anthropic, Google Gemini, OpenCode Zen and OpenCode Go.
+
+### Can I use a custom OpenAI-compatible endpoint?
+
+Yes, with a self-hosted provider such as **vLLM**, **LM Studio** or **OpenWebUI**. Hosted
+providers (OpenAI, Anthropic and so on) only accept their official address. That's a
+deliberate safeguard so your key can't be redirected to another server.
+
+### Why does a prompt come out without AI polish?
+
+Either the **No AI** mode is on, or the model couldn't be reached. In both cases
+you still get the base prompt, ready to copy. Check your provider in *Settings*.
+
+### Where did my history go?
+
+History is stored encrypted on your computer with a key kept in your keychain. If you
+reset your keychain, old entries can't be decrypted. You can export your history as
+JSON from the history panel to keep a backup.
+
+### How do I keep my prompts completely private?
+
+Pick **Ollama** (or another local provider) and, if you like, switch to **No AI** mode.
+
+### Can I contribute?
+
+Please do! Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+<div align="center">
+
+**Nexus Prompt Suite** · built by [CeleroLab](https://celerolab.com)
+
+</div>

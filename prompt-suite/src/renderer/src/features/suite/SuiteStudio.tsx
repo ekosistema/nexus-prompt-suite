@@ -1,193 +1,133 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useSessionState } from '../../hooks/useSessionState';
 import { DynamicForm } from '../../components/ui/DynamicForm';
 import { studioFields } from './formSchemas';
+import { optionLabel } from './fieldUtils';
 import { t } from '../../lib/i18n';
-import { BookOpen } from 'lucide-react';
 
 interface SuiteStudioProps {
     onGenerate: (prompt: string) => void;
     lang: 'es' | 'en';
     onRegisterGenerate?: (fn: () => void) => void;
+    onInvalid?: (msg: string) => void;
 }
 
-export function SuiteStudio({ onGenerate, lang, onRegisterGenerate }: SuiteStudioProps) {
-    const [values, setValues] = useState<Record<string, any>>({
+type L2 = { es: string; en: string };
+
+// Cada perfil define quién escribe y con qué voz (sustituye al antiguo campo "Tono").
+const PROFILES: Record<string, { role: L2; voice: L2 }> = {
+    expert: { role: { es: 'Experto en la Materia', en: 'Subject Matter Expert' }, voice: { es: 'técnico, denso y preciso', en: 'technical, dense and precise' } },
+    student: { role: { es: 'Mentor Académico Riguroso', en: 'Rigorous Academic Mentor' }, voice: { es: 'didáctico, estructurado y crítico; cita principios teóricos y fomenta el pensamiento crítico', en: 'didactic, structured and critical; cite theoretical principles and foster critical thinking' } },
+    creative: { role: { es: 'Director de Arte / Visionario', en: 'Art Director / Visionary' }, voice: { es: 'conceptual, estético y evocador', en: 'conceptual, aesthetic and evocative' } },
+    executive: { role: { es: 'Consultor de Estrategia', en: 'Strategy Consultant' }, voice: { es: 'ejecutivo, conciso y orientado al ROI', en: 'executive, concise and ROI-oriented' } },
+    beginner: { role: { es: 'Tutor Paciente', en: 'Patient Tutor' }, voice: { es: 'simple y amigable; explica desde cero con analogías y sin jerga', en: 'simple and friendly; explain from scratch with analogies and no jargon' } },
+    developer: { role: { es: 'Senior Engineer / Tech Lead', en: 'Senior Engineer / Tech Lead' }, voice: { es: 'técnico y práctico, con ejemplos de código', en: 'technical and practical, with code examples' } },
+};
+
+// Cada marco indica CÓMO razonar y hasta dónde detallar (no es solo una etiqueta).
+const FRAMES: Record<string, L2> = {
+    first_principles: {
+        es: 'Descompón el tema en sus verdades fundamentales y reconstruye la explicación desde ahí, sin dar nada por supuesto. Detalle alto en los fundamentos; omite lo accesorio.',
+        en: 'Break the topic down into its fundamental truths and rebuild the explanation from there, assuming nothing. High detail on fundamentals; skip the incidental.',
+    },
+    feynman: {
+        es: 'Explica como a alguien que parte de cero: lenguaje simple, una idea por párrafo y analogías cotidianas. Detecta y rellena los huecos de comprensión; cierra con un resumen en 3 frases.',
+        en: 'Explain as if to someone starting from zero: simple language, one idea per paragraph and everyday analogies. Spot and fill comprehension gaps; close with a 3-sentence recap.',
+    },
+    critical_thinking: {
+        es: 'Examina las afirmaciones con rigor: presenta evidencias y contraargumentos, señala supuestos y sesgos, y distingue hechos de opiniones. Profundidad alta en el análisis; termina con una conclusión matizada.',
+        en: 'Examine claims rigorously: present evidence and counterarguments, flag assumptions and biases, and separate facts from opinions. High depth in the analysis; end with a nuanced conclusion.',
+    },
+    pareto: {
+        es: 'Aplica el principio 80/20: identifica el 20 % de ideas que aporta el 80 % del valor y desarróllalo a fondo. Resume brevemente el resto y prioriza acciones por impacto.',
+        en: 'Apply the 80/20 principle: identify the 20% of ideas that deliver 80% of the value and develop them in depth. Summarize the rest briefly and prioritize actions by impact.',
+    },
+    analogy: {
+        es: 'Explica mediante analogías y comparaciones con otros dominios, indicando en cada caso dónde la analogía funciona y dónde deja de hacerlo. Detalle medio, con ejemplos memorables.',
+        en: 'Explain through analogies and comparisons with other domains, stating in each case where the analogy holds and where it breaks. Medium detail, with memorable examples.',
+    },
+    systems_thinking: {
+        es: 'Mapea los componentes, sus relaciones, bucles de retroalimentación y efectos de segundo orden. Detalle alto en las interacciones; incluye un resumen del sistema completo.',
+        en: 'Map the components, their relationships, feedback loops and second-order effects. High detail on the interactions; include an overview of the whole system.',
+    },
+};
+
+const WORDS: Record<string, L2> = {
+    short: { es: '500-800 palabras', en: '500-800 words' },
+    medium: { es: '1000-2000 palabras', en: '1000-2000 words' },
+    long: { es: '2000-5000 palabras', en: '2000-5000 words' },
+};
+
+export function SuiteStudio({ onGenerate, lang, onRegisterGenerate, onInvalid }: SuiteStudioProps) {
+    const [values, setValues] = useSessionState<Record<string, any>>('suite.studio', {
         topic: '',
         profile: 'expert',
-        funnelStage: 'awareness',
-        contentPillar: '',
         frame: 'first_principles',
         format: 'report',
         wordCount: 'medium',
         seoKeywords: [],
         ctaGoal: 'none',
-        tone: 'professional',
-        includeData: true,
-        repurposing: [],
-        structuredOutput: false,
     });
+
+    const L = (es: string, en: string) => (lang === 'es' ? es : en);
 
     const handleChange = (id: string, value: any) => {
         setValues(prev => ({ ...prev, [id]: value }));
     };
 
     const handleGenerate = () => {
-        if (!values.topic?.trim()) return;
-
-        const profileLabels: Record<string, { role: { es: string; en: string }; tone: { es: string; en: string } }> = {
-            expert: { role: { es: 'Experto en la Materia (SME)', en: 'Subject Matter Expert (SME)' }, tone: { es: 'Técnico, denso y preciso', en: 'Technical, dense, and precise' } },
-            student: { role: { es: 'Mentor Académico Riguroso', en: 'Rigorous Academic Mentor' }, tone: { es: 'Didáctico, estructurado y crítico (Nivel Universitario)', en: 'Didactic, structured, and critical (University Level)' } },
-            creative: { role: { es: 'Director de Arte / Visionario', en: 'Art Director / Visionary' }, tone: { es: 'Conceptual, estético y metafórico', en: 'Conceptual, aesthetic, and metaphorical' } },
-            executive: { role: { es: 'Consultor de Estrategia', en: 'Strategy Consultant' }, tone: { es: 'Ejecutivo, conciso y orientado al ROI', en: 'Executive, concise, and ROI-oriented' } },
-            beginner: { role: { es: 'Tutor Paciente y Accesible', en: 'Patient and Accessible Tutor' }, tone: { es: 'Simple, amigable, sin jerga', en: 'Simple, friendly, no jargon' } },
-            developer: { role: { es: 'Senior Engineer / Tech Lead', en: 'Senior Engineer / Tech Lead' }, tone: { es: 'Técnico, práctico, con ejemplos de código', en: 'Technical, practical, with code examples' } },
-        };
-
-        const funnelLabels: Record<string, { es: string; en: string }> = {
-            awareness: { es: 'TOFU - Conciencia (atraer audiencia nueva)', en: 'TOFU - Awareness (attract new audience)' },
-            consideration: { es: 'MOFU - Consideración (educar y nutrir)', en: 'MOFU - Consideration (educate and nurture)' },
-            decision: { es: 'BOFU - Decisión (convertir)', en: 'BOFU - Decision (convert)' },
-            retention: { es: 'Retención (fidelizar)', en: 'Retention (retain)' },
-        };
-
-        const wordCountLabels: Record<string, { es: string; en: string }> = {
-            short: { es: '500-800 palabras', en: '500-800 words' },
-            medium: { es: '1000-2000 palabras', en: '1000-2000 words' },
-            long: { es: '2000-5000 palabras', en: '2000-5000 words' },
-            custom: { es: 'Personalizado', en: 'Custom' },
-        };
-
-        const ctaLabels: Record<string, { es: string; en: string }> = {
-            none: { es: 'Sin CTA', en: 'No CTA' },
-            newsletter: { es: 'Newsletter Signup', en: 'Newsletter Signup' },
-            demo: { es: 'Product Demo', en: 'Product Demo' },
-            download: { es: 'Download / Lead Magnet', en: 'Download / Lead Magnet' },
-            share: { es: 'Share / Repost', en: 'Share / Repost' },
-            purchase: { es: 'Purchase / Subscribe', en: 'Purchase / Subscribe' },
-        };
-
-        const prof = profileLabels[values.profile] || profileLabels.expert;
-        const funnel = funnelLabels[values.funnelStage] || funnelLabels.awareness;
-        const wc = wordCountLabels[values.wordCount] || wordCountLabels.medium;
-        const cta = ctaLabels[values.ctaGoal] || ctaLabels.none;
-
-        let extraInstruction = '';
-        if (lang === 'es') {
-            if (values.profile === 'student') {
-                extraInstruction = "Usa un enfoque académico riguroso. Cita principios teóricos, evita simplificaciones excesivas y fomenta el pensamiento crítico.";
-            } else if (values.profile === 'creative') {
-                extraInstruction = "Enfócate en la narrativa, la estética y la innovación conceptual. Usa lenguaje evocador.";
-            } else if (values.profile === 'beginner') {
-                extraInstruction = "Explica todo desde cero. Usa analogías simples. Evita jerga técnica o explícala cuando sea necesaria.";
-            }
-        } else {
-            if (values.profile === 'student') {
-                extraInstruction = "Use a rigorous academic approach. Cite theoretical principles, avoid oversimplification, and foster critical thinking.";
-            } else if (values.profile === 'creative') {
-                extraInstruction = "Focus on narrative, aesthetics, and conceptual innovation. Use evocative language.";
-            } else if (values.profile === 'beginner') {
-                extraInstruction = "Explain everything from scratch. Use simple analogies. Avoid technical jargon or explain it when necessary.";
-            }
+        if (!values.topic?.trim()) {
+            onInvalid?.(t('validation.required', lang).replace('{{field}}', t('studio.topic', lang)));
+            return;
         }
 
-        let seoSection = '';
-        if (values.seoKeywords && values.seoKeywords.length > 0) {
-            const keywords = values.seoKeywords.join(', ');
-            seoSection = lang === 'es'
-                ? `\n### SEO KEYWORDS\nIncluye naturalmente estas keywords en el contenido: ${keywords}.`
-                : `\n### SEO KEYWORDS\nNaturally include these keywords in the content: ${keywords}.`;
-        }
+        const profile = PROFILES[values.profile] || PROFILES.expert;
+        const format = optionLabel(studioFields, 'format', values.format, lang);
+        const frameName = optionLabel(studioFields, 'frame', values.frame, lang);
+        const frame = (FRAMES[values.frame] || FRAMES.first_principles)[lang];
+        const words = (WORDS[values.wordCount] || WORDS.medium)[lang];
+        const keywords: string[] = Array.isArray(values.seoKeywords) ? values.seoKeywords : [];
+        const hasCta = values.ctaGoal && values.ctaGoal !== 'none';
+        const cta = hasCta ? optionLabel(studioFields, 'ctaGoal', values.ctaGoal, lang) : '';
 
-        let ctaSection = '';
-        if (values.ctaGoal !== 'none') {
-            ctaSection = lang === 'es'
-                ? `\n### CALL TO ACTION\nEl objetivo del CTA es: ${cta.es}. Incluye un CTA claro y persuasivo al final del contenido.`
-                : `\n### CALL TO ACTION\nThe CTA goal is: ${cta.en}. Include a clear, persuasive CTA at the end of the content.`;
-        }
-
-        let dataSection = '';
-        if (values.includeData) {
-            dataSection = lang === 'es'
-                ? `\n### DATOS Y ESTADÍSTICAS\nIncluye estadísticas, datos de soporte y referencias a fuentes confiables donde sea relevante.`
-                : `\n### DATA AND STATISTICS\nInclude statistics, supporting data, and references to credible sources where relevant.`;
-        }
-
-        let repurposingSection = '';
-        if (values.repurposing && values.repurposing.length > 0) {
-            const versions = values.repurposing.map((v: string) => {
-                const labels: Record<string, string> = {
-                    linkedin: 'LinkedIn Post',
-                    twitter_thread: 'Twitter Thread',
-                    email: 'Email Newsletter',
-                    instagram_carousel: 'Instagram Carousel',
-                    tiktok_script: 'TikTok/Reel Script',
-                };
-                return labels[v] || v;
-            }).join(', ');
-            repurposingSection = lang === 'es'
-                ? `\n### REPURPOSING\nDespués del contenido principal, genera versiones adaptadas para: ${versions}.`
-                : `\n### REPURPOSING\nAfter the main content, generate adapted versions for: ${versions}.`;
-        }
-
-        if (lang === 'es') {
-            const prompt = `### ROL
-Actúa como **${prof.role.es}**.
-
-### CONTEXTO
-Tema: "**${values.topic.trim()}**"
-Perfil de Audiencia: **${t(`studio.prof.${values.profile}` as any, 'es').toUpperCase()}**
-Etapa del Funnel: **${funnel.es}**
-Marco Mental: **${t(`studio.frame.${values.frame}` as any, 'es').toUpperCase()}**
-Pilar de Contenido: **${values.contentPillar || 'No especificado'}**
-${seoSection}${dataSection}${ctaSection}${repurposingSection}
+        const prompt = L(
+            `### ROL
+Actúa como **${profile.role.es}**.
 
 ### TAREA
-Genera contenido en formato **${t(`studio.fmt.${values.format}` as any, 'es').toUpperCase()}** que sea intelectualmente riguroso y atractivo.
-Extensión objetivo: ${wc.es}.
+Escribe un contenido en formato **${format}** sobre: **${values.topic.trim()}**.
+Extensión objetivo: ${words}.
 
-### RESTRICCIONES Y ESTÁNDARES
-- **Tono:** ${values.tone}.
-- **Instrucción Especial:** ${extraInstruction}
-- **Profundidad:** Prioriza la profundidad sobre la amplitud. Evita explicaciones superficiales.
-- **Precisión:** Cero alucinaciones. Cita principios o lógica donde aplique.
-- **Funnel Stage:** El contenido debe estar optimizado para ${funnel.es}.
-${values.structuredOutput ? '- **Formato:** Devuelve el contenido como JSON estructurado con campos: title, sections[], metadata{}, cta.' : ''}
-IDIOMA DE SALIDA: ESPAÑOL.
-
+### ESTILO
+- **Voz:** ${profile.voice.es}.
+- **Marco mental (${frameName}):** ${frame}
+- Prioriza la profundidad sobre la amplitud y evita explicaciones superficiales.
+- No inventes datos, cifras ni citas: si necesitas una fuente, márcalo como [FALTA: fuente].
+${keywords.length ? `\n### SEO\nIncluye de forma natural estas keywords: ${keywords.join(', ')}.\n` : ''}${hasCta ? `\n### LLAMADA A LA ACCIÓN\nCierra con un CTA claro y persuasivo orientado a: ${cta}.\n` : ''}
 ### FORMATO DE SALIDA
-Proporciona el contenido en formato markdown estructurado para un **${t(`studio.fmt.${values.format}` as any, 'es')}**.`.trim();
+Markdown estructurado, adecuado para un(a) ${format}.
 
-            onGenerate(prompt);
-        } else {
-            const prompt = `### ROLE
-Act as **${prof.role.en}**.
-
-### CONTEXT
-Topic: "**${values.topic.trim()}**"
-Target Audience Profile: **${t(`studio.prof.${values.profile}` as any, 'en').toUpperCase()}**
-Funnel Stage: **${funnel.en}**
-Mental Framework: **${t(`studio.frame.${values.frame}` as any, 'en').toUpperCase()}**
-Content Pillar: **${values.contentPillar || 'Not specified'}**
-${seoSection}${dataSection}${ctaSection}${repurposingSection}
+IDIOMA DE SALIDA: ESPAÑOL.`,
+            `### ROLE
+Act as **${profile.role.en}**.
 
 ### TASK
-Generate **${t(`studio.fmt.${values.format}` as any, 'en').toUpperCase()}** content that is intellectually rigorous and engaging.
-Target length: ${wc.en}.
+Write content in **${format}** format about: **${values.topic.trim()}**.
+Target length: ${words}.
 
-### CONSTRAINTS & QUALITY STANDARDS
-- **Tone:** ${values.tone}.
-- **Instruction:** ${extraInstruction}
-- **Depth:** Prioritize depth over breadth. Avoid superficial explanations.
-- **Accuracy:** Zero hallucinations. Cite principles or logic where applicable.
-- **Funnel Stage:** Content should be optimized for ${funnel.en}.
-${values.structuredOutput ? '- **Format:** Return the content as structured JSON with fields: title, sections[], metadata{}, cta.' : ''}
-OUTPUT LANGUAGE: ENGLISH.
-
+### STYLE
+- **Voice:** ${profile.voice.en}.
+- **Mental framework (${frameName}):** ${frame}
+- Prioritize depth over breadth and avoid superficial explanations.
+- Do not invent data, figures or quotes: if you need a source, mark it as [MISSING: source].
+${keywords.length ? `\n### SEO\nNaturally include these keywords: ${keywords.join(', ')}.\n` : ''}${hasCta ? `\n### CALL TO ACTION\nClose with a clear, persuasive CTA aimed at: ${cta}.\n` : ''}
 ### OUTPUT FORMAT
-Provide the content in a structured markdown format suitable for a **${t(`studio.fmt.${values.format}` as any, 'en')}**.`.trim();
+Structured Markdown, suitable for a ${format}.
 
-            onGenerate(prompt);
-        }
+OUTPUT LANGUAGE: ENGLISH.`
+        );
+
+        onGenerate(prompt.trim());
     };
 
     useEffect(() => {
@@ -196,17 +136,10 @@ Provide the content in a structured markdown format suitable for a **${t(`studio
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <DynamicForm
-                fields={studioFields}
-                values={values}
-                onChange={handleChange}
-                lang={lang}
-            />
+            <DynamicForm fields={studioFields} values={values} onChange={handleChange} lang={lang} />
 
             <div className="bg-purple-900/20 border border-purple-500/30 rounded-md p-3">
-                <p className="text-xs text-purple-400">
-                    {t('studio.tip', lang)}
-                </p>
+                <p className="text-xs text-purple-400">{t('studio.tip', lang)}</p>
             </div>
         </div>
     );

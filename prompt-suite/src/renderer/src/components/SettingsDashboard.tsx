@@ -189,7 +189,7 @@ export function SettingsDashboard(): JSX.Element {
                                         <div className="space-y-2">
                                             <label htmlFor="provider-key" className={labelClass}>
                                                 <Key size={14} className="inline mr-1.5 opacity-60" />
-                                                {t('settings.api_key', lang)}{currentProvider.supports_api_key && !currentProvider.needs_api_key && ' (opcional)'}
+                                                {t('settings.api_key', lang)}{currentProvider.supports_api_key && !currentProvider.needs_api_key && ` ${t('settings.optional_suffix', lang)}`}
                                                 {settings.hasApiKey && (
                                                     <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/30">
                                                         Guardada
@@ -249,7 +249,7 @@ export function SettingsDashboard(): JSX.Element {
                                             )}
                                             {currentProvider.id === 'ollama' && (
                                                 <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
-                                                    🖥️ Ollama debe estar instalado y corriendo. Ejecuta `ollama serve` en tu terminal.
+                                                    🖥️ {t('settings.ollama_running', lang)}
                                                 </p>
                                             )}
                                         </div>
@@ -415,21 +415,21 @@ export function SettingsDashboard(): JSX.Element {
                                         "w-2 h-2 rounded-full",
                                         settings.endpoint ? "bg-green-500" : "bg-yellow-500"
                                     )} />
-                                    <span className="text-xs text-muted-foreground">{settings.endpoint ? 'Configured' : 'Not set'}</span>
+                                    <span className="text-xs text-muted-foreground">{settings.endpoint ? t('settings.status.configured', lang) : t('settings.status.not_set', lang)}</span>
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
                                 <div>
                                     <div className="text-sm font-medium">Model</div>
-                                    <div className="text-xs text-muted-foreground font-mono">{settings.model || 'Not set'}</div>
+                                    <div className="text-xs text-muted-foreground font-mono">{settings.model || t('settings.status.not_set', lang)}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className={cn(
                                         "w-2 h-2 rounded-full",
                                         settings.model ? "bg-green-500" : "bg-yellow-500"
                                     )} />
-                                    <span className="text-xs text-muted-foreground">{settings.model ? 'Selected' : 'Default'}</span>
+                                    <span className="text-xs text-muted-foreground">{settings.model ? t('settings.status.selected', lang) : t('settings.status.default', lang)}</span>
                                 </div>
                             </div>
 
@@ -438,7 +438,7 @@ export function SettingsDashboard(): JSX.Element {
                                     <div>
                                         <div className="text-sm font-medium">API Key</div>
                                         <div className="text-xs text-muted-foreground font-mono">
-                                            {settings.hasApiKey ? 'Stored in keychain' : 'Not set'}
+                                            {settings.hasApiKey ? t('settings.status.stored', lang) : t('settings.status.not_set', lang)}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -447,7 +447,7 @@ export function SettingsDashboard(): JSX.Element {
                                             settings.hasApiKey ? "bg-green-500" : (currentProvider?.needs_api_key ? "bg-red-500" : "bg-yellow-500")
                                         )} />
                                         <span className="text-xs text-muted-foreground">
-                                            {settings.hasApiKey ? 'Stored in keychain' : (currentProvider?.needs_api_key ? 'Required' : 'Optional')}
+                                            {settings.hasApiKey ? t('settings.status.stored', lang) : (currentProvider?.needs_api_key ? t('settings.status.required', lang) : t('settings.status.optional', lang))}
                                         </span>
                                     </div>
                                 </div>

@@ -1,5 +1,5 @@
-use super::super::engine::{DefaultAiEngine, MAX_STREAM_SIZE};
-use super::super::providers::get_provider_info;
+use super::super::engine::{rejects_temperature, DefaultAiEngine, LineBuffer, MAX_STREAM_SIZE};
+use super::super::providers::{get_provider_info, resolve_base_url};
 use super::super::types::{Message, Provider};
 use futures::StreamExt;
 use std::str::FromStr;
@@ -39,11 +39,7 @@ impl DefaultAiEngine {
             String::new()
         };
 
-        let base = if endpoint.is_empty() || !endpoint.starts_with("http") {
-            info.default_url.clone()
-        } else {
-            endpoint.trim_end_matches('/').to_string()
-        };
+        let base = resolve_base_url(&info, endpoint)?;
 
         let mut body = serde_json::json!({
             "model": model,
@@ -83,6 +79,39 @@ impl DefaultAiEngine {
         }
     }
 
+    /// Sends the request; if the model rejects `temperature` (OpenAI o-series / GPT-5
+    /// only accept the default) it retries once without that parameter.
+    async fn send_compat(&self, request: &OpenAiCompatRequest) -> Result<reqwest::Response, String> {
+        let send = |body: &serde_json::Value| {
+            self.apply_auth_headers(self.client.post(&request.url), request)
+                .json(body)
+                .send()
+        };
+        let res = send(&request.body)
+            .await
+            .map_err(|e| format!("{} connection error: {}", request.info_name, e))?;
+        if res.status().is_success() {
+            return Ok(res);
+        }
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        if rejects_temperature(status, &text) && request.body.get("temperature").is_some() {
+            let mut body = request.body.clone();
+            if let Some(obj) = body.as_object_mut() {
+                obj.remove("temperature");
+            }
+            let retry = send(&body)
+                .await
+                .map_err(|e| format!("{} connection error: {}", request.info_name, e))?;
+            if retry.status().is_success() {
+                return Ok(retry);
+            }
+            let st = retry.status();
+            return Err(Self::sanitize_error(st, retry.text().await.unwrap_or_default()));
+        }
+        Err(Self::sanitize_error(status, text))
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn call_openai_compatible(
         &self,
@@ -107,20 +136,7 @@ impl DefaultAiEngine {
             )
             .await?;
 
-        let req = self.apply_auth_headers(self.client.post(&request.url), &request);
-
-        let res = req
-            .json(&request.body)
-            .send()
-            .await
-            .map_err(|e| format!("{} connection error: {}", request.info_name, e))?;
-
-        if !res.status().is_success() {
-            return Err(Self::sanitize_error(
-                res.status(),
-                res.text().await.unwrap_or_default(),
-            ));
-        }
+        let res = self.send_compat(&request).await?;
 
         let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
         Ok(json["choices"][0]["message"]["content"]
@@ -182,40 +198,30 @@ impl DefaultAiEngine {
             )
             .await?;
 
-        let req = self.apply_auth_headers(self.client.post(&request.url), &request);
-
-        let res = req
-            .json(&request.body)
-            .send()
-            .await
-            .map_err(|e| format!("{} connection error: {}", request.info_name, e))?;
-
-        if !res.status().is_success() {
-            return Err(Self::sanitize_error(
-                res.status(),
-                res.text().await.unwrap_or_default(),
-            ));
-        }
+        let res = self.send_compat(&request).await?;
 
         let mut full_content = String::new();
         let mut stream = res.bytes_stream();
+        let mut lines = LineBuffer::default();
+
+        let handle = |line: &str, full: &mut String, on_token: &mut (dyn FnMut(&str) + Send)| {
+            if line.is_empty() || line == "data: [DONE]" {
+                return;
+            }
+            if let Some(data) = line.strip_prefix("data:") {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(data.trim()) {
+                    if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
+                        full.push_str(content);
+                        on_token(content);
+                    }
+                }
+            }
+        };
 
         while let Some(chunk) = stream.next().await {
             let bytes = chunk.map_err(|e| e.to_string())?;
-            let text = String::from_utf8_lossy(&bytes);
-            for line in text.lines() {
-                let line = line.trim();
-                if line.is_empty() || line == "data: [DONE]" {
-                    continue;
-                }
-                if let Some(data) = line.strip_prefix("data: ") {
-                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                        if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
-                            full_content.push_str(content);
-                            on_token(content);
-                        }
-                    }
-                }
+            for line in lines.push(&bytes) {
+                handle(&line, &mut full_content, on_token);
             }
             if full_content.len() > MAX_STREAM_SIZE {
                 return Err(format!(
@@ -223,6 +229,9 @@ impl DefaultAiEngine {
                     MAX_STREAM_SIZE
                 ));
             }
+        }
+        if let Some(rest) = lines.finish() {
+            handle(&rest, &mut full_content, on_token);
         }
         Ok(())
     }

@@ -1,408 +1,350 @@
-# Nexus Prompt Suite — Development Blueprint
+# 🛠️ Development Guide
 
-Technical reference for maintaining and scaling the Nexus Prompt Suite infrastructure.
+Everything you need to understand, run, test and release **Nexus Prompt Suite**
+(currently **v1.3.0**).
+
+**Contents**
+
+1. [Overview](#-overview)
+2. [Architecture](#-architecture)
+3. [Project layout](#-project-layout)
+4. [Local setup](#-local-setup)
+5. [How a prompt is made](#-how-a-prompt-is-made)
+6. [Backend commands](#-backend-commands)
+7. [Where data lives](#-where-data-lives)
+8. [Extending Nexus](#-extending-nexus)
+9. [Testing](#-testing)
+10. [Releasing](#-releasing)
+11. [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 🏗️ Architecture Deep-Dive
+## 🧭 Overview
 
-### High-Level Pattern: Hybrid Monolith
+Nexus is a [Tauri 2](https://tauri.app) desktop app with two halves:
 
-The application follows a **Decoupled Backend/Frontend Architecture** bridged by Tauri's IPC (Inter-Process Communication).
+| Half | Stack | Responsibility |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, TypeScript (strict), Vite, Tailwind CSS | Workspaces, forms, history, prompt display, settings |
+| **Backend** | Rust (`reqwest`, `tokio`, `keyring`) | Talking to AI providers, keychain access, rate limiting, local settings |
 
-- **Frontend (UI Library)**: A Vite-powered React application. It handles state management (Context API), tab-based routing, dynamic form rendering (8 field types), and Markdown output display with real-time streaming.
-- **Backend (System Layer)**: A Rust core managing safe I/O, native credential storage (Keyring), rate limiting, and high-performance AI orchestration across 12 providers via `reqwest` with SSE streaming.
+They talk through Tauri's IPC (`invoke`). **All network calls to AI providers are
+made by Rust**, never by the web view. That is what lets the backend keep API keys
+away from the interface entirely.
 
-### Design Principles
+### Principles
 
-| Principle | Implementation |
+| Principle | In practice |
 | :--- | :--- |
-| **Secure by default** | API keys encrypted in OS Keychain via `keyring-rs` (never in plain text on disk). JSON sanitization before persistence (CWE-312). 1MB file read cap (CWE-400). Endpoint whitelist with SSRF protection. AES-GCM encrypted localStorage. |
-| **Radical privacy** | Zero telemetry, zero servers, zero external logging. Everything runs locally. API key redaction in all console output via `safeLog()`. |
-| **Native performance** | Rust backend with async `reqwest` + SSE streaming. React frontend with Vite tree-shaking and lazy loading (`React.Suspense`). |
-| **Strict typing** | TypeScript `strict: true` on the frontend. Algebraic types and trait system in Rust on the backend. |
-| **Extensibility** | Provider architecture via `AiEngine` trait with per-provider engine implementations (`ollama.rs`, `anthropic.rs`, `gemini.rs`, `openai_compat.rs`). Templates defined as data (not hardcoded in UI). |
-| **Resilience** | Rate limiter (30 req/60s, 3 concurrent). RAII guard pattern for automatic release. Stream buffer caps (256KB). Model fetch timeout (10s). |
+| 🔐 **Keys never reach the UI** | The UI can write or delete a key; only Rust ever reads it. |
+| 🕵️ **Zero telemetry** | No analytics, no remote logging, no servers of our own. |
+| 🧱 **Small and typed** | TypeScript `strict`, Rust traits for providers, data-driven templates. |
+| 🧩 **Short forms** | A form with many empty fields makes a worse prompt, so every field must earn its place. |
+| 🛡️ **Fail safe** | If an AI call fails, the user still gets the base prompt. |
 
-### Architecture Diagram
+---
+
+## 🧱 Architecture
 
 ```mermaid
 graph TB
-    subgraph Frontend["⚛ Frontend: React + TypeScript"]
-        UI["UI Components"]
-        CTX["AppContext"]
-        HKS["Hooks"]
-        SVC["Services"]
+    subgraph FE["⚛️ Frontend — React + TypeScript"]
+        UI["Workspaces & forms"]
+        HIST["History · versions · refine"]
+        SVC["services/ai.ts<br/>(AI SDK model over IPC)"]
     end
 
-    subgraph Bridge["🔗 Tauri IPC Bridge"]
-        IPC["invoke"]
+    IPC(("Tauri IPC<br/>invoke / Channel"))
+
+    subgraph BE["🦀 Backend — Rust"]
+        CMD["13 commands"]
+        RL["Rate limiter"]
+        ENG["AiEngine"]
+        KR["OS keychain"]
+        CFG["Settings file"]
     end
 
-    subgraph Backend["🦀 Backend: Rust"]
-        CMD["14 IPC Commands"]
-        RL["Rate Limiter"]
-        AI["AiEngine Trait"]
-        KR["OS Keychain"]
-        FS["Local Storage"]
+    subgraph NET["🌐 AI providers"]
+        CLOUD["OpenAI · Anthropic · Gemini<br/>Groq · Together · OpenRouter · OpenCode"]
+        LOCAL["Ollama · LM Studio · vLLM · OpenWebUI"]
     end
 
-    subgraph External["🌐 External APIs"]
-        OAI["OpenAI"]
-        ANTH["Anthropic"]
-        GEM["Gemini"]
-        OLLA["Ollama Local"]
-    end
-
-    UI --> CTX --> HKS --> SVC
-    SVC -->|invoke| IPC --> CMD
-    CMD --> RL
-    CMD --> AI
+    UI --> HIST --> SVC --> IPC --> CMD
+    CMD --> RL --> ENG
     CMD --> KR
-    CMD --> FS
-    AI -->|reqwest| OAI
-    AI -->|reqwest| ANTH
-    AI -->|reqwest| GEM
-    AI -->|reqwest| OLLA
-
-    style Frontend fill:#1e1e3f,stroke:#6366f1,color:#e2e8f0
-    style Bridge fill:#2d1b69,stroke:#8b5cf6,color:#e2e8f0
-    style Backend fill:#1a2e1a,stroke:#22c55e,color:#e2e8f0
-    style External fill:#1e293b,stroke:#64748b,color:#e2e8f0
+    CMD --> CFG
+    ENG --> KR
+    ENG -->|HTTPS| CLOUD
+    ENG -->|HTTP/HTTPS| LOCAL
 ```
+
+A request travels like this: the UI calls `invoke("call_ai", …)` **without a key** →
+Rust validates the parameters, takes a rate-limit slot, reads the key from the
+keychain, calls the provider and returns text (or streams tokens through a Tauri `Channel`).
 
 ---
 
-## 📂 Project Structure
+## 📂 Project layout
 
 ```
 nexus-prompt-suite/
-│
-├── prompt-suite/                    # 🏗️ Main Tauri + Frontend workspace
-│   │
-│   ├── src-tauri/                   # 🦀 Rust Backend (Native Core)
-│   │   ├── Cargo.toml               #    Rust dependencies (reqwest, keyring, serde, tokio, futures)
-│   │   ├── tauri.conf.json          #    Tauri app config (window, bundle, CSP)
-│   │   ├── capabilities/
-│   │   │   └── default.json         #    Permission manifest (core:default, shell:allow-open)
-│   │   └── src/
-│   │       ├── main.rs              #    Entry point → app_lib::run()
-│   │       ├── lib.rs               #    🧠 Tauri IPC Bridge — 14 backend commands
-│   │       │                        #       • get/save_settings (local preferences)
-│   │       │                        #       • call_ai / call_ai_stream (inference + SSE)
-│   │       │                        #       • list_ollama_models / list_provider_models
-│   │       │                        #       • get_available_providers (12 providers)
-│   │       │                        #       • save/get_api_key_secure (OS Keychain, legacy)
-│   │       │                        #       • save/get_provider_api_key (per-provider)
-│   │       │                        #       • secure_storage_set/get/remove (AES-GCM)
-│   │       ├── rate_limiter.rs      #    🚦 Rate limiter — 30 req/60s, 3 concurrent, RAII guard
-│   │       ├── tests.rs             #    🧪 12 unit tests with MockAiEngine (4 phases)
-│   │       └── ai/                  #    ⚙️ AI Engine Module
-│   │           ├── mod.rs           #       Module re-exports
-│   │           ├── engine.rs        #       AiEngine trait + DefaultAiEngine (key resolution, SSE parsing)
-│   │           ├── providers.rs     #       12 provider definitions with metadata
-│   │           ├── types.rs         #       Core types (Message, Provider enum, ProviderInfo)
-│   │           └── engines/         #       Per-provider engine implementations
-│   │               ├── mod.rs
-│   │               ├── ollama.rs         #  Ollama — /api/chat + NDJSON streaming
-│   │               ├── anthropic.rs      #  Anthropic — x-api-key + system message extraction
-│   │               ├── gemini.rs         #  Google Gemini — x-goog-api-key + model sanitization
-│   │               └── openai_compat.rs  #  OpenAI-compatible — 8 providers, SSE streaming
-│   │
-│   ├── src/renderer/                # ⚛️ Frontend React + TypeScript
-│   │   ├── index.html               #    HTML shell with strict CSP headers
-│   │   └── src/
-│   │       ├── main.tsx             #    React entry point (StrictMode)
-│   │       ├── App.tsx              #    🧩 Root component — tab routing + Suspense
-│   │       ├── index.css            #    🎨 Tailwind + dark theme HSL + responsive
-│   │       ├── components/          #    🧱 UI Components
-│   │       │   ├── Layout.tsx       #       Main shell (Sidebar + Main)
-│   │       │   ├── Sidebar.tsx      #       Collapsible nav with 7 sections
-│   │       │   ├── SettingsDashboard.tsx  # Full settings panel (provider, keys, models, i18n)
-│   │       │   └── ui/              #       Reusable atomic components
-│   │       │       ├── DynamicForm.tsx    #  Form renderer (8 field types)
-│   │       │       ├── FormField.tsx      #  Single field with a11y
-│   │       │       ├── PromptViewerPanel.tsx  # Prompt viewer with Original/Optimized toggle
-│   │       │       ├── LLMStatusIndicator.tsx # Visual inference progress indicator
-│   │       │       └── LoadingSpinner.tsx  # Size-variant spinner
-│   │       ├── contexts/
-│   │       │   └── AppContext.tsx    #    🌐 Global state (settings, i18n, models, provider config)
-│   │       ├── features/
-│   │       │   ├── suite/           #    🎯 Prompt generation suites
-│   │       │   │   ├── PromptSuite.tsx     # Core workspace (3 view modes: Form, Prompt, Split)
-│   │       │   │   ├── ChatView.tsx        # Chat interaction with AI
-│   │       │   │   ├── SuiteGenesis.tsx    # Genesis Lab — 7 ideation techniques, 4 prompting modes
-│   │       │   │   ├── SuiteDev.tsx        # Software Architect — 9 project types, 6 focus areas
-│   │       │   │   ├── SuiteAudit.tsx      # Code Auditor — 8 scan types, compliance frameworks
-│   │       │   │   ├── SuiteStudio.tsx     # Content Studio — 15 content formats, mental frameworks
-│   │       │   │   ├── SuiteSocial.tsx     # Social Strategist — hooks, triggers, frameworks
-│   │       │   │   ├── SuiteTemplates.tsx  # Template Library — 60+ bilingual templates
-│   │       │   │   ├── SuiteOutputPanel.tsx # Shared output panel for suite results
-│   │       │   │   ├── data.ts            # Bulk data (templates, configs)
-│   │       │   │   └── formSchemas.ts     # Dynamic form schema definitions
-│   │       │   └── matrix/          #    Alternative prompt matrix (3 categories)
-│   │       ├── hooks/               #    🪝 Custom hooks
-│   │       │   ├── useAIInference.ts        # Core AI inference hook (streaming + non-streaming)
-│   │       │   ├── useAIInference.test.tsx  # Inference hook unit tests
-│   │       │   ├── usePromptGenerator.ts    # Prompt state management + export
-│   │       │   └── useDebounce.ts           # Generic debounce utility
-│   │       ├── lib/
-│   │       │   ├── i18n.ts           #    🌍 Full bilingual translations (ES/EN, 447 lines)
-│   │       │   ├── utils.ts          #    🔧 cn() class merging, safeLog() with API key redaction, sanitizeAIOutput()
-│   │       │   └── secureStorage.ts  #    🔐 AES-GCM encrypted localStorage with OS keychain keys
-│   │       └── services/
-│   │           └── ai.ts             #    🔌 AI service abstraction — wraps Tauri invoke() calls
-│   │
-│   ├── package.json                  # Node dependencies (React 18, Tailwind, Vitest, Lucide, etc.)
-│   ├── vite.config.ts                # Vite + Vitest + path alias config
-│   ├── tsconfig.json                 # Strict TypeScript config
-│   ├── tailwind.config.cjs           # Tailwind theme with HSL CSS design tokens
-│   └── postcss.config.cjs            # PostCSS (Tailwind + Autoprefixer)
-│
-├── docs/
-│   └── INLINE_STANDARDS.md           # 📐 Inline doc standards (RustDoc + JSDoc)
-├── .github/workflows/
-│   └── build-and-release.yml         # 🔄 CI/CD — multi-platform matrix builds + security scans
-├── VERSION                           # 🔖 Current version (1.1.0)
-├── LICENSE                           # 📜 MIT License
-├── README.md                         # 📄 Project overview
-└── DEVELOPMENT.md                    # 📖 This document
+├── VERSION                         Current version (keep in sync, see "Releasing")
+├── docs/                           Screenshots and documentation standards
+├── .github/                        Issue/PR templates and the release workflow
+└── prompt-suite/                   The app (run every npm command from here)
+    ├── package.json
+    ├── vite.config.ts              Vite + Vitest config; injects the app version
+    ├── index.html                  App shell with the content security policy
+    ├── src/renderer/src/
+    │   ├── App.tsx · main.tsx
+    │   ├── components/             Layout, Sidebar, SettingsDashboard, ui/
+    │   ├── contexts/AppContext.tsx Settings, providers and model list
+    │   ├── features/suite/         The workspaces (see below)
+    │   ├── hooks/                  useAIInference, useHistory, useSessionState…
+    │   ├── lib/                    i18n, history, secureStorage, utils, validators
+    │   └── services/               ai.ts and the AI SDK model bridge
+    └── src-tauri/
+        ├── tauri.conf.json         Window, bundle and CSP
+        ├── capabilities/           Tauri permissions
+        └── src/
+            ├── lib.rs              IPC commands and validation
+            ├── rate_limiter.rs
+            ├── tests.rs
+            └── ai/                 providers.rs · engine.rs · types.rs · engines/
 ```
+
+### Inside `features/suite/`
+
+| File | Purpose |
+| :--- | :--- |
+| `PromptSuite.tsx` | The shared workspace shell: toolbar, AI/No-AI switch, view modes, history, versions |
+| `Suite{Genesis,Dev,Audit,Studio,Social}.tsx` | One file per workspace. Each builds its prompt from a short form |
+| `SuiteTemplates.tsx` | The template library, custom templates and variable form |
+| `SuiteOutputPanel.tsx` | Result panel: versions, refine bar, edit, copy, download |
+| `HistoryPanel.tsx` | Saved prompts: search, favorites, reopen, export/import |
+| `formSchemas.ts` | Field definitions for each workspace form |
+| `data.ts` · `templatesNew.ts` | The built-in templates (ES/EN) |
+| `varMeta.ts` | Field type, options, suggestions and examples for template variables |
+| `fieldUtils.ts` | Turns option ids into readable labels for prompts |
 
 ---
 
-## 🛠️ Local Environment Setup
+## 🚦 Local setup
 
 ### Prerequisites
 
-- **Node.js 20+**
-- **Rust Stable** (≥ 1.77.2, installed via [rustup](https://rustup.rs))
-- **OS Dependencies**:
-  - **Windows**: WebView2 (usually pre-installed). MSVC C++ Build Tools.
-  - **Linux**: `libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev`.
-  - **macOS**: Xcode Command Line Tools (`xcode-select --install`).
+| Tool | Version |
+| :--- | :--- |
+| Node.js | 20 or newer |
+| Rust | stable, 1.77.2 or newer ([rustup](https://rustup.rs)) |
+| **Windows** | WebView2 (usually preinstalled) and the MSVC C++ build tools |
+| **macOS** | Xcode command line tools (`xcode-select --install`) |
+| **Linux** | `libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf` |
 
-### Initial Setup
+### Run it
 
 ```bash
 cd prompt-suite
-# Resolve peer dependencies explicitly due to strict vite/vitest requirements
-npm install --legacy-peer-deps
-```
-
-### Development Execution
-
-```bash
+npm install
 npm run tauri dev
 ```
 
-Starts the Vite dev server (HMR) at `localhost:5173` + native Tauri window with Rust backend hot reload.
+This starts Vite on `localhost:5173` and opens the native window. The first Rust
+build takes a few minutes; later ones are incremental.
 
-### Production Build
+### Scripts
 
-```bash
-npm run tauri build
-```
+Run these from `prompt-suite/`:
 
-Generates the optimized binary for your current platform at `src-tauri/target/release/bundle/`.
-
----
-
-## 🔄 Data Flow & Security
-
-### Tauri IPC Commands (14 total)
-
-Commands in `lib.rs` use the `#[tauri::command]` macro and are registered via `tauri::generate_handler!`.
-
-| Command | Category | Description |
-| :--- | :--- | :--- |
-| `get_settings` | Settings | Reads preferences from local JSON file (1MB cap) |
-| `save_settings` | Settings | Persists preferences, strips API keys before write (CWE-312) |
-| `call_ai` | Inference | Non-streaming AI inference via `AiEngine` trait |
-| `call_ai_stream` | Inference | Streaming AI inference via SSE |
-| `list_ollama_models` | Models | Queries local Ollama `/api/tags` |
-| `list_provider_models` | Models | Fetches model list from remote provider (10s timeout) |
-| `get_available_providers` | Providers | Returns metadata for all 12 providers |
-| `save_api_key_secure` | Keychain (legacy) | Stores API key in OS-native credential manager |
-| `get_api_key_secure` | Keychain (legacy) | Retrieves stored API key |
-| `save_provider_api_key` | Keychain | Per-provider API key storage with keyring suffix |
-| `get_provider_api_key` | Keychain | Per-provider API key retrieval |
-| `secure_storage_set` | Storage | AES-GCM encrypted key-value write |
-| `secure_storage_get` | Storage | AES-GCM encrypted key-value read |
-| `secure_storage_remove` | Storage | AES-GCM encrypted key-value deletion |
-
-### Security Hardening
-
-| Measure | Implementation |
+| Command | What it does |
 | :--- | :--- |
-| **Memory hardening** | File reads capped at 1MB (CWE-400). Message content ≤ 128KB. Stream buffer ≤ 256KB. Max 200 messages per request. |
-| **Secret resolution** | API keys stored exclusively in OS keychain via `keyring-rs`. Never in plain JSON files. Console output redacted via `safeLog()`. |
-| **SSRF protection** | Endpoint whitelist (7 remote hosts). URL credential detection. HTTPS enforcement for remote endpoints. |
-| **Rate limiting** | 30 requests per 60 seconds. Max 3 concurrent AI requests. RAII guard pattern for automatic release on drop. |
-| **Error sanitization** | Debug builds return detailed errors. Production builds return generic messages to prevent information leakage. |
+| `npm run tauri dev` | Run the full app with hot reload |
+| `npm run dev` | Frontend only, in a browser (no Rust, so AI calls won't work) |
+| `npm test` | Frontend tests (Vitest) |
+| `npx tsc --noEmit` | Type check |
+| `npm run build` | Type check and production frontend build |
+| `npm run tauri build` | Installer for your current platform, in `src-tauri/target/release/bundle/` |
 
-### Performance Optimizations
-
-- **Tree-Shaking**: Vite optimizes the production bundle to reduce load times.
-- **Lazy Loading**: Suite views loaded via `React.Suspense` to reduce initial JS overhead.
-- **Async I/O**: All AI inference and file operations are non-blocking via `tokio`.
-- **SSE Streaming**: Real-time token streaming for supported providers (OpenAI-compatible, Anthropic, Ollama, Gemini).
+Rust commands run from `prompt-suite/src-tauri/`: `cargo test`, `cargo clippy`, `cargo fmt`.
 
 ---
 
-## 🧪 Testing Protocols
+## 🧪 How a prompt is made
 
-### Frontend (Vitest)
-
-Unit tests for hooks and components:
-
-```bash
-npm test
+```mermaid
+flowchart LR
+    A[Short form] --> B[Base prompt<br/>composed instantly]
+    B --> C{With AI?}
+    C -- No --> E[Result panel]
+    C -- Yes --> D[Prompt Architect<br/>rewrites it]
+    D --> E
+    E --> F[Refine · edit · versions]
+    E --> G[(History)]
 ```
 
-| Tool | Purpose |
-| :--- | :--- |
-| **Vitest** | Test runner (Vite-native, fast) |
-| **happy-dom** | Lightweight DOM environment |
-| **@testing-library/react** | Component rendering and queries |
-| **@testing-library/user-event** | Simulated user interactions |
+1. Each workspace turns form values into a **base prompt** (no AI involved). Option
+   ids are converted to readable labels with `optionLabel()`.
+2. If **With AI** is on, the base prompt goes through the *Prompt Architect*
+   system prompt in `PromptSuite.tsx`. It is told to use the user's concrete values
+   and never to invent `{{placeholders}}`.
+3. The result becomes version **v1**. Refinements and manual edits add new versions.
+4. If the AI call fails, the base prompt is still shown and copyable.
+5. Every generation is stored in the history together with a snapshot of the form,
+   so **Reopen** restores it.
+6. `findOrphanVars()` scans the base prompt and the AI output for leftover
+   `{{TOKENS}}` and warns before the user copies an unfinished prompt.
 
-Test files are co-located with their implementation (e.g., `useAIInference.test.tsx` beside `useAIInference.ts`).
+Form state survives switching views and workspaces thanks to `useSessionState`,
+an in-memory store that is cleared when the app closes.
 
-### Backend (Cargo)
+---
 
-Rust tests for AI logic, security, and performance:
+## 🔌 Backend commands
 
-```bash
-cargo test --manifest-path src-tauri/Cargo.toml
-```
+All commands live in `src-tauri/src/lib.rs` and are registered in `run()`.
 
-**12 unit tests** across 4 phases using `MockAiEngine`:
-
-| Phase | Tests | Scope |
+| Command | Group | Purpose |
 | :--- | :--- | :--- |
-| **1 — Happy path** | `test_happy_path_valid_call` | Valid provider, API key, and messages → successful mocked response |
-| **2 — Hostile path** | `test_hostile_missing_api_key`<br/>`test_hostile_empty_messages`<br/>`test_hostile_network_timeout` | Missing API key rejection, empty message handling, simulated network timeout resilience |
-| **3 — Security** | `test_is_localhost_accepted`<br/>`test_is_localhost_rejected`<br/>`test_is_allowed_endpoint_exact_match`<br/>`test_is_allowed_endpoint_subdomain`<br/>`test_is_allowed_endpoint_bypass_blocked`<br/>`test_is_allowed_endpoint_localhost`<br/>`test_is_allowed_endpoint_empty` | Localhost validation, whitelist matching, subdomain allowlisting, SSRF bypass rejection |
-| **4 — Performance** | `test_performance_massive_payload` | 100K character payload processed in under 50ms |
+| `get_settings` · `save_settings` | Settings | Read/write the preferences file (1 MB cap, secrets stripped) |
+| `call_ai` | Inference | One-shot completion |
+| `call_ai_stream` | Inference | Streaming completion returned as one string |
+| `stream_ai` | Inference | Streams tokens to the UI through a Tauri `Channel` |
+| `list_provider_models` · `list_ollama_models` | Models | Ask a provider for its real model list (10 s timeout) |
+| `get_available_providers` | Providers | Provider metadata for the UI |
+| `save_provider_api_key` | Keychain | Store or delete a provider key (write-only) |
+| `has_provider_api_key` | Keychain | Is a key stored? Returns a boolean, never the key |
+| `secure_storage_set` · `_get` · `_remove` | Keychain | Store the local-storage encryption key (allow-listed names only) |
 
-### Typecheck
+### Limits enforced in Rust
+
+| Limit | Value |
+| :--- | :--- |
+| Requests | 30 per 60 s, 3 at a time (RAII guard) |
+| Messages per request | 200, each at most 128 KB |
+| Streamed response | 256 KB |
+| Settings file | 1 MB |
+| API key | 1024 characters, no whitespace or control characters |
+| Temperature · context | 0–2 · up to 1,048,576 |
+
+### Endpoint rules
+
+- Remote endpoints must be **HTTPS** and must not contain credentials.
+- Local endpoints (`localhost`, `127.0.0.1`, `::1`) may use HTTP on an allow-listed
+  port (80, 443, 1234, 3000, 4000, 5000, 5173, 8000, 8080, 11434, 31415).
+- Hosted providers (OpenAI, Anthropic, Groq, Together, OpenRouter, OpenCode…) only
+  accept their **official host**. Self-hosted providers (Ollama, LM Studio, vLLM,
+  OpenWebUI) accept any valid endpoint. See `resolve_base_url()` in `providers.rs`.
+- Redirects are disabled on every provider call.
+
+---
+
+## 💾 Where data lives
+
+| Data | Location | Protection |
+| :--- | :--- | :--- |
+| API keys | OS keychain, service `prompt-suite-ia:<provider>_key` | Native keychain |
+| Local-storage encryption key | OS keychain, service `prompt-suite-secure-storage` | Native keychain |
+| Preferences | `.nexus_preferences.json` in the app config folder | No secrets; keys are stripped before writing |
+| History · custom templates · remembered values | Web view local storage | AES-GCM, key from the keychain |
+| Form drafts | Memory | Gone when the app closes |
+
+---
+
+## 🧩 Extending Nexus
+
+### Add a template
+
+1. Add an object to `templatesNew.ts` (ES **and** EN text). Use `{{VARIABLES}}` and
+   finish with `IDIOMA: {{LANG_OUTPUT}}` / `LANGUAGE: {{LANG_OUTPUT}}`.
+2. Follow the structure *Role → Goal → Context → Steps → Output format → Language*.
+3. If a variable should be a dropdown, a large text box or have suggestions,
+   describe it in `varMeta.ts`.
+4. Run `npm test`. The template tests check unique ids, known categories and that
+   ES and EN use the same variables.
+
+### Add a provider
+
+1. Add an entry to `all_providers()` in `src-tauri/src/ai/providers.rs`.
+2. Add the variant to `Provider` in `types.rs`.
+3. If it speaks the OpenAI chat format it works out of the box
+   (`openai_compat.rs`). Otherwise add an engine under `ai/engines/`.
+4. Hosted provider? Make sure its default URL is the real official host, because that
+   is what the key is pinned to.
+5. Add tests in `tests.rs`.
+
+### Add a form field
+
+Keep it rare. Before adding one, ask: *would most users fill this in?* If not, leave
+it out. There is a test that fails if a form grows beyond 8 fields.
+
+---
+
+## ✅ Testing
+
+| Suite | Command | Covers |
+| :--- | :--- | :--- |
+| **Frontend** | `npm test` | Hooks, history, secure storage, templates, forms, utilities |
+| **Backend** | `cargo test` (in `src-tauri/`) | Engine behavior, endpoint rules, key validation, stream parsing |
+| **Keychain** | `cargo test -- --ignored test_keyring_smoke` | A real round trip against your OS keychain (run it by hand) |
+| **Types** | `npx tsc --noEmit` | TypeScript strict mode |
+| **Lint** | `cargo clippy` | Rust lints |
+
+Before opening a pull request:
 
 ```bash
-npx tsc --noEmit
+# from prompt-suite/
+npm test && npx tsc --noEmit
+
+# from prompt-suite/src-tauri/
+cargo test && cargo clippy && cargo fmt --check
 ```
 
-Zero-cost verification: no type errors = clean build.
+Dependency checks: `npm audit` and `cargo audit` (install with `cargo install cargo-audit`).
 
-### Full Validation Chain
+---
+
+## 🚢 Releasing
+
+Releases are built by the **Build and Release** workflow
+(`.github/workflows/build-and-release.yml`). It runs when a tag like `v1.3.0` is
+pushed, or manually with a version number, and builds installers for macOS
+(Apple Silicon and Intel), Linux (Ubuntu 22.04) and Windows. Releases are created
+as **drafts**; review the artifacts and publish manually.
+
+> The workflow builds and publishes. It does **not** run the test suites, so run
+> them locally first.
+
+### Version checklist
+
+Bump the version in all of these (the sidebar reads it from `package.json`
+automatically):
+
+| File | Field |
+| :--- | :--- |
+| `VERSION` | whole file |
+| `prompt-suite/package.json` | `version` |
+| `prompt-suite/package-lock.json` | the first two `version` fields (run `npm install`) |
+| `prompt-suite/src-tauri/Cargo.toml` | `version` |
+| `prompt-suite/src-tauri/Cargo.lock` | the `prompt-suite` entry (updated by `cargo build`) |
+| `prompt-suite/src-tauri/tauri.conf.json` | `version` |
+
+Then tag and push:
 
 ```bash
-# Frontend
-npm test                     # Vitest suite
-
-# Backend
-cargo test                   # Rust unit tests
-cargo clippy -- -D warnings  # Lint (deny warnings)
-cargo fmt --check            # Format verification
-
-# TypeScript
-npx tsc --noEmit             # Type checking
-
-# Security
-cargo audit                  # Rust dependency vulnerability scan
-npm audit                    # Frontend dependency audit
+git tag v1.3.0
+git push origin v1.3.0
 ```
 
 ---
 
-## 🚀 CI/CD & Deployment
+## 🩺 Troubleshooting
 
-The project uses GitHub Actions (`.github/workflows/build-and-release.yml`) to generate production binaries:
+| Symptom | Fix |
+| :--- | :--- |
+| `EBUSY` / dev server crashes while Rust compiles (Windows) | Fixed by ignoring `src-tauri/` in Vite's watcher (`vite.config.ts`). If it returns, close stray `cargo` or app processes and retry. |
+| Port 5173 already in use | Stop the other Vite process; the port is fixed (`strictPort`). |
+| "Could not access the system credential manager" | Unlock your keychain. On Linux install and start a Secret Service provider such as GNOME Keyring or KeePassXC. |
+| A provider answers *Check your API key and model configuration* | Release builds hide provider error bodies on purpose. Run a debug build to see the details. |
+| Saved history or templates won't load after a keychain reset | The encryption key was lost, so old data can't be decrypted. It is replaced with a fresh key on next save. |
 
-1. **Trigger**: Pushing a tag (e.g., `v1.1.0`) or manual `workflow_dispatch`.
-2. **Matrix**: Parallel builds for:
-   - `macos-latest` (aarch64 and x86_64)
-   - `ubuntu-22.04`
-   - `windows-latest`
-3. **Pipeline stages**:
-   | Stage | Commands |
-   | :--- | :--- |
-   | Checkout | `actions/checkout@v4` |
-   | Node.js | Setup v22 + cache |
-   | Rust | `rustup` stable + `rustup target add` |
-   | System deps | Linux: `libwebkit2gtk`, `libssl`, `libgtk` / macOS: Xcode CLT |
-   | Install | `npm install --legacy-peer-deps` |
-   | Lint | `cargo clippy -- -D warnings` + `cargo fmt --check` |
-   | Typecheck | `npx tsc --noEmit` |
-   | Test | `npm test` (Vitest) + `cargo test` |
-   | Audit | `cargo audit` + `npm audit` |
-   | SBOM | Generate CycloneDX software bill of materials |
-   | Build | `npm run tauri build` per platform |
-   | Sign | macOS notarization + Windows code signing |
-   | Attest | SLSA provenance attestation |
-   | Release | Draft GitHub Release with attached binaries |
-
----
-
-## 🌱 Contribution Guidelines
-
-### Commit Convention
-
-We strictly follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: add Gemini streaming support
-fix: resolve race condition in get_settings on startup
-docs: update usage examples in README
-chore: bump Tauri dependencies to v2.11.5
-test: add integration tests for code auditor
-refactor: extract keyring logic to separate module
-```
-
-### Pull Request Template
-
-```markdown
-## 📋 Description
-[Brief summary of the change]
-
-## 🎯 Change Type
-- [ ] feat: New feature
-- [ ] fix: Bug fix
-- [ ] docs: Documentation
-- [ ] refactor: Refactoring
-- [ ] test: Tests
-- [ ] chore: Maintenance
-
-## 🧪 Testing
-- [ ] Unit tests added/updated
-- [ ] `cargo test` passes (backend)
-- [ ] `npm test` passes (frontend)
-- [ ] `tsc --noEmit` passes (typecheck)
-
-## ✅ Checklist
-- [ ] Code follows [Inline Documentation Standards](./docs/INLINE_STANDARDS.md)
-- [ ] No `unsafe` blocks in Rust without explicit justification
-- [ ] All TypeScript code is fully typed (`strict: true`)
-- [ ] Production build compiles without errors
-```
-
-### Code Standards
-
-See [`docs/INLINE_STANDARDS.md`](./docs/INLINE_STANDARDS.md) for documentation conventions:
-
-- **Rust**: RustDoc with `# Arguments`, `# Returns`, `# Errors` sections.
-- **TypeScript**: JSDoc with `@param`, `@returns`, `@throws` annotations.
-
-### Bug Reports
-
-1. Verify the bug hasn't been reported in [Issues](https://github.com/ekosistema/nexus-prompt-suite/issues).
-2. Use the bug report template and include:
-   - **Version** of Nexus Prompt Suite.
-   - **Operating system** and architecture.
-   - **AI provider** and model used.
-   - **Steps to reproduce** the error.
-   - **Expected vs. observed behavior**.
-
----
-
-🚀 **CeleroLab Technical Division** | [Technical Support](mailto:tech@celerolab.com)
+Still stuck? See [SUPPORT.md](SUPPORT.md).
