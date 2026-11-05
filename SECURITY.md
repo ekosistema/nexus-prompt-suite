@@ -81,8 +81,8 @@ With your permission, we'll credit you in the release notes.
 2. **Keep your OS updated.** Nexus relies on your system keychain.
 3. **Read your provider's privacy policy** before sending confidential data to the cloud.
 4. **Use separate API keys per tool** and set spending limits where your provider allows it.
-5. **Download Nexus only** from [nexus.celerolab.com](https://nexus.celerolab.com)
-   or this repository's releases.
+5. **Download Nexus only** from [nexus.celerolab.com](https://nexus.celerolab.com).
+   Be wary of installers from anywhere else.
 
 ---
 

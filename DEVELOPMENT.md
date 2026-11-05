@@ -90,7 +90,7 @@ keychain, calls the provider and returns text (or streams tokens through a Tauri
 nexus-prompt-suite/
 ├── VERSION                         Current version (keep in sync, see "Releasing")
 ├── docs/                           Screenshots and documentation standards
-├── .github/                        Issue/PR templates and the release workflow
+├── .github/                        Issue and pull request templates
 └── prompt-suite/                   The app (run every npm command from here)
     ├── package.json
     ├── vite.config.ts              Vite + Vitest config; injects the app version
@@ -305,14 +305,18 @@ Dependency checks: `npm audit` and `cargo audit` (install with `cargo install ca
 
 ## 🚢 Releasing
 
-Releases are built by the **Build and Release** workflow
-(`.github/workflows/build-and-release.yml`). It runs when a tag like `v1.3.0` is
-pushed, or manually with a version number, and builds installers for macOS
-(Apple Silicon and Intel), Linux (Ubuntu 22.04) and Windows. Releases are created
-as **drafts**; review the artifacts and publish manually.
+Installers are **not** built from this repository. This repo holds only the source:
+there is no release workflow here. Official builds are produced by a separate
+**private builder repository**, which checks out this code, builds it for macOS (Apple
+Silicon and Intel), Linux and Windows, and keeps the result as a **draft release** until
+the maintainers publish it.
 
-> The workflow builds and publishes. It does **not** run the test suites, so run
-> them locally first.
+For contributors this means:
+
+- Nothing in this repo publishes binaries, and pull requests don't trigger builds.
+- You can always build your own installer locally with `npm run tauri build`.
+- There is no automated CI on pull requests yet, so please run the
+  [checks listed above](#-testing) before opening one.
 
 ### Version checklist
 
@@ -328,9 +332,11 @@ automatically):
 | `prompt-suite/src-tauri/Cargo.lock` | the `prompt-suite` entry (updated by `cargo build`) |
 | `prompt-suite/src-tauri/tauri.conf.json` | `version` |
 
-Then tag and push:
+Then push, and optionally tag the commit so the builder can build exactly that
+version:
 
 ```bash
+git push origin main
 git tag v1.3.0
 git push origin v1.3.0
 ```

@@ -15,7 +15,7 @@ Closes #
 
 ## 🧪 How was it tested?
 
-> Our workflow doesn't run tests on pull requests yet, so please run these locally.
+> There's no automated CI on pull requests yet, so please run these locally.
 
 - [ ] `npm test` and `npx tsc --noEmit` (from `prompt-suite/`)
 - [ ] `cargo test`, `cargo clippy` and `cargo fmt --check` (from `prompt-suite/src-tauri/`)

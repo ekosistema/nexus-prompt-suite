@@ -81,8 +81,8 @@ cargo clippy
 cargo fmt --check
 ```
 
-> ℹ️ Our GitHub workflow only builds releases; it doesn't run tests on pull
-> requests yet. Please run the checks above yourself and say so in the PR.
+> ℹ️ There's no automated CI on pull requests yet. Please run the checks above
+> yourself and say so in the PR.
 
 ### 4. Commit
 
